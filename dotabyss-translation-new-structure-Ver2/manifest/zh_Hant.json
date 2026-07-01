@@ -17,7 +17,7 @@
   },
   "another_name": "53e1f4eb06590b3518ed3abdce80ed65",
   "descriptions": "add2864d88f340597ae9c0f7e314118d",
-  "hash": "ecdc355b1f321f78d7db8bf87a47386e",
+  "hash": "b1a1a20aae2546d5a8e29d2d75ff37ff",
   "m_ability_details": "b87a493ab911ccec8e543eb06cced6e1",
   "m_ability_effect_types": "27332246803ff3145b34aaf616df2469",
   "m_abnormal_condition_types": "6dd376a313f27f2281e8961791c4d729",
@@ -46,13 +46,13 @@
   "m_defensive_units": "55cf58f71977d6d7242386387ccaa174",
   "m_degrees": "35e714d1b88c246b27bd9edcefc4c9cb",
   "m_description_text_colors": "2f39e57e1fbb0553baac5f5746522d67",
-  "m_dictionary_enemies": "aa756d7ea3f4cd23fa0f6496ff78c21c",
+  "m_dictionary_enemies": "a7828ec3cdd33b11aee6eddfaf1bb3a0",
   "m_dictionary_enemy_groups": "73dcbdf147fb9d23bee0243c0b1dfbd0",
   "m_dictionary_non_player_character_groups": "a49c9cc44aca752fed2754eeb14f4ae3",
   "m_dictionary_non_player_characters": "559b646b3dcc3e94eaf7beffe502982c",
   "m_dictionary_world_groups": "c95dabb7f59efdededb32ef27538e51a",
   "m_dictionary_worlds": "1222332bbbae1589d4491d56dcfcbdf1",
-  "m_disaster_boss_messages": "50eb21cef82333449efe7e4633d7ce0c",
+  "m_disaster_boss_messages": "f5f2816160b7c81e65d1d49069d9bd98",
   "m_disaster_boss_restricts": "0904253cca8d32018a2394f4cef3df85",
   "m_disaster_level_restricts": "0551c698025af74be18d9593627ae012",
   "m_dungeons": "5e258adcf023eef3c39df1537dd5a151",
@@ -1042,5 +1042,5 @@
     "system": "c30ba8c817cb71a304967ea89409fb66",
     "ui_misc": "1c67a492e421b85841c611dcf003a0af"
   },
-  "ui_texts": "543d926603f83176caaa25f710380121"
+  "ui_texts": "762e15aa6db949c683b0421f5693f581"
 }
