@@ -17,7 +17,7 @@
   },
   "another_name": "53e1f4eb06590b3518ed3abdce80ed65",
   "descriptions": "add2864d88f340597ae9c0f7e314118d",
-  "hash": "6badaf6ab895ab3cd24c37ad0514c26a",
+  "hash": "a32cad3f2a8e461593c9e851ad6df25f",
   "m_ability_details": "8452daa34bb20b760ca953b9b798054c",
   "m_ability_effect_types": "27332246803ff3145b34aaf616df2469",
   "m_abnormal_condition_types": "ced548eba62efa87981ade84ab491cac",
@@ -1042,5 +1042,5 @@
     "system": "c30ba8c817cb71a304967ea89409fb66",
     "ui_misc": "1c67a492e421b85841c611dcf003a0af"
   },
-  "ui_texts": "56611c1ce5f7868ffc032777e2153517"
+  "ui_texts": "356f98cd7db7a7213c3c207d74025ea7"
 }
