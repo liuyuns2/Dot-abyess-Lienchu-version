@@ -1,8 +1,12 @@
 """
 用法：python push_update.py "commit 訊息"
-功能：自動掃描所有有變動的檔案 → 同步 static/zh_Hant.json → 更新 manifest hash → git add → commit → push
+功能：
+  1. 同步 static/zh_Hant.json（從 m_* 彙整）
+  2. 同步 dotabyss-translation-client-version（開發區 → 用戶區）
+  3. 更新 manifest hash
+  4. git add → commit → push
 """
-import json, sys, hashlib, time, subprocess
+import json, sys, hashlib, time, subprocess, shutil
 from pathlib import Path
 
 
@@ -36,14 +40,52 @@ def sync_static(ver2: Path):
         print(f'static/zh_Hant.json 同步完成：{updated} 筆更新')
     return updated
 
+def sync_client(ver2: Path, client: Path):
+    """將開發區的更動同步到用戶區（只同步 zh_Hant.json）"""
+    # 單一檔案資料夾：names, ui_texts, static, manifest
+    for folder_name in ('names', 'ui_texts', 'static', 'manifest'):
+        src = ver2 / folder_name / 'zh_Hant.json'
+        dst = client / folder_name / 'zh_Hant.json'
+        if src.exists() and dst.exists():
+            src_text = src.read_text(encoding='utf-8')
+            if dst.read_text(encoding='utf-8') != src_text:
+                dst.write_text(src_text, encoding='utf-8')
+                print(f'  [用戶區] {folder_name}/zh_Hant.json 已更新')
+
+    # novels：逐子資料夾同步
+    src_novels = ver2 / 'novels'
+    dst_novels = client / 'novels'
+    if src_novels.exists() and dst_novels.exists():
+        synced = 0
+        for src_f in src_novels.glob('*/zh_Hant.json'):
+            sub = src_f.parent.name
+            dst_f = dst_novels / sub / 'zh_Hant.json'
+            if dst_f.exists():
+                src_text = src_f.read_text(encoding='utf-8')
+                if dst_f.read_text(encoding='utf-8') != src_text:
+                    dst_f.write_text(src_text, encoding='utf-8')
+                    synced += 1
+            # 新增的劇情（開發區有但用戶區沒有）
+            else:
+                dst_f.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_f, dst_f)
+                synced += 1
+        if synced:
+            print(f'  [用戶區] novels 同步：{synced} 個劇情更新')
+
+
 repo = Path(r'D:\dotabyss-translation\GITHUB-dotabyss-translation\Dot-abyess-Lienchu-version')
 ver2 = repo / 'dotabyss-translation-new-structure-Ver2'
+client = repo / 'dotabyss-translation-client-version'
 manifest_f = ver2 / 'manifest' / 'zh_Hant.json'
 
 data = json.loads(manifest_f.read_text(encoding='utf-8'))
 
-# 先同步 static/zh_Hant.json
+# 步驟1：同步 static/zh_Hant.json（m_* → static）
 sync_static(ver2)
+
+# 步驟2：同步用戶區（開發區 → client）
+sync_client(ver2, client)
 
 def flat_hash(d: dict) -> str:
     sb = []
