@@ -1,6 +1,6 @@
 """
 用法：python push_update.py "commit 訊息"
-功能：自動補齊 manifest novels → 更新 manifest hash → git add → commit → push
+功能：自動同步所有檔案 hash 到 manifest → 更新 manifest hash → git add → commit → push
 """
 import json, sys, hashlib, time, subprocess
 from pathlib import Path
@@ -11,40 +11,57 @@ manifest_f = ver2 / 'manifest' / 'zh_Hant.json'
 
 data = json.loads(manifest_f.read_text(encoding='utf-8'))
 
-# 1. 掃描 novels 資料夾，補齊 manifest 裡缺少的 novel hash
-def compute_novel_hash(d: dict) -> str:
+def compute_flat_hash(d: dict) -> str:
+    """ui_texts / names 用的 hash（flat dict）"""
     sb = []
     for k in sorted(d.keys()):
         sb.append(k); sb.append('\0')
         sb.append(d.get(k) or ''); sb.append('\0')
     return hashlib.md5(''.join(sb).encode('utf-8')).hexdigest()
 
+def compute_novel_hash(d: dict) -> str:
+    return compute_flat_hash(d)
+
+# 1. 同步 novels：新增或修改都更新 hash
 novels_dir = ver2 / 'novels'
-registered = set(data.get('novels', {}).keys())
-added_novels = 0
+novel_changes = 0
 for novel_dir in sorted(novels_dir.iterdir()):
     if not novel_dir.is_dir():
         continue
     novel_id = novel_dir.name
-    if novel_id in registered:
-        continue
     zh_f = novel_dir / 'zh_Hant.json'
     if not zh_f.exists():
         continue
     novel_data = json.loads(zh_f.read_text(encoding='utf-8'))
-    data['novels'][novel_id] = compute_novel_hash(novel_data)
-    added_novels += 1
-    print(f'  manifest 新增 novel: {novel_id}')
+    new_h = compute_novel_hash(novel_data)
+    old_h = data['novels'].get(novel_id)
+    if old_h != new_h:
+        data['novels'][novel_id] = new_h
+        novel_changes += 1
+        label = '新增' if not old_h else '更新'
+        print(f'  novels {label}: {novel_id}')
 
-if added_novels:
-    print(f'共補齊 {added_novels} 個 novel')
+if novel_changes:
+    print(f'novels 共 {novel_changes} 個變更')
 
-# 2. 更新 manifest hash（強制 AbyssMod 重新下載）
+# 2. 同步 ui_texts hash
+for name in ['ui_texts', 'names']:
+    f = ver2 / name / 'zh_Hant.json'
+    if not f.exists():
+        continue
+    d = json.loads(f.read_text(encoding='utf-8'))
+    new_h = compute_flat_hash(d)
+    old_h = data.get(name)
+    if old_h != new_h:
+        data[name] = new_h
+        print(f'  {name} hash 更新: {(old_h or "")[:8]}... -> {new_h[:8]}...')
+
+# 3. 更新頂層 manifest hash（強制 AbyssMod 重新下載 manifest）
 old_hash = data.get('hash', '')
 new_hash = hashlib.md5(str(time.time()).encode()).hexdigest()
 data['hash'] = new_hash
 manifest_f.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
-print(f'manifest hash 更新: {old_hash[:8]}... -> {new_hash[:8]}...')
+print(f'manifest hash: {old_hash[:8]}... -> {new_hash[:8]}...')
 
 # 3. git add all
 subprocess.run(['git', 'add', '-A'], cwd=repo, check=True)
