@@ -1,15 +1,49 @@
 """
 用法：python push_update.py "commit 訊息"
-功能：自動掃描所有有變動的檔案 → 更新 manifest hash → git add → commit → push
+功能：自動掃描所有有變動的檔案 → 同步 static/zh_Hant.json → 更新 manifest hash → git add → commit → push
 """
 import json, sys, hashlib, time, subprocess
 from pathlib import Path
+
+
+def sync_static(ver2: Path):
+    """將所有 m_*/zh_Hant.json 的最新翻譯同步到 static/zh_Hant.json"""
+    static_path = ver2 / 'static' / 'zh_Hant.json'
+    if not static_path.exists():
+        return 0
+    static_data = json.loads(static_path.read_text(encoding='utf-8'))
+    updated = 0
+    for m_dir in sorted(ver2.glob('m_*')):
+        if not m_dir.is_dir():
+            continue
+        zh_f = m_dir / 'zh_Hant.json'
+        if not zh_f.exists() or m_dir.name not in static_data:
+            continue
+        individual = json.loads(zh_f.read_text(encoding='utf-8'))
+        section = static_data[m_dir.name]
+        for jp_key, new_val in individual.items():
+            for sub_entries in section.values():
+                if isinstance(sub_entries, dict) and jp_key in sub_entries:
+                    if sub_entries[jp_key] != new_val:
+                        sub_entries[jp_key] = new_val
+                        updated += 1
+                    break
+    if updated > 0:
+        static_path.write_text(
+            json.dumps(static_data, ensure_ascii=False, indent=2),
+            encoding='utf-8'
+        )
+        print(f'static/zh_Hant.json 同步完成：{updated} 筆更新')
+    return updated
 
 repo = Path(r'D:\dotabyss-translation\GITHUB-dotabyss-translation\Dot-abyess-Lienchu-version')
 ver2 = repo / 'dotabyss-translation-new-structure-Ver2'
 manifest_f = ver2 / 'manifest' / 'zh_Hant.json'
 
 data = json.loads(manifest_f.read_text(encoding='utf-8'))
+
+# 先同步 static/zh_Hant.json
+sync_static(ver2)
 
 def flat_hash(d: dict) -> str:
     sb = []
