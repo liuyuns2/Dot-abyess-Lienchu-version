@@ -84,9 +84,6 @@ data = json.loads(manifest_f.read_text(encoding='utf-8'))
 # 步驟1：同步 static/zh_Hant.json（m_* → static）
 sync_static(ver2)
 
-# 步驟2：同步用戶區（開發區 → client）
-sync_client(ver2, client)
-
 def flat_hash(d: dict) -> str:
     sb = []
     for k in sorted(d.keys()):
@@ -140,6 +137,9 @@ new_hash = hashlib.md5(str(time.time()).encode()).hexdigest()
 data['hash'] = new_hash
 manifest_f.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
 print(f'manifest hash: {old_hash[:8]}... -> {new_hash[:8]}... ({changes} 個檔案有變動)')
+
+# 步驟2：manifest 更新完畢後，再同步用戶區（確保用戶拿到最新 hash）
+sync_client(ver2, client)
 
 subprocess.run(['git', 'add', '-A'], cwd=repo, check=True)
 msg = sys.argv[1] if len(sys.argv) > 1 else 'update translations'
