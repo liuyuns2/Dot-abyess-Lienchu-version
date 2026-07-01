@@ -104,7 +104,7 @@
   "敵全体に石化【{[ABNORMAL.DURATION]秒} / 成功率:20%】を付与": "對所有敵人附加石化【{[ABNORMAL.DURATION]秒} / 成功率:20%】",
   "最もHPが高い敵1体に【1HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】ダメージ / 自身に紋章：情熱を【5】付与 / 凍結【10秒 / 成功率:50%】を付与": "對HP最高的1個敵人造成【1HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】傷害 / 對自身施加紋章：情熱【5】 / 附加凍結【10秒 / 成功率:50%】",
   "最もHPが高い敵1体に【6HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ": "對HP最高的1個敵人造成【6HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害",
-  "最もHP割合が高い敵1体に【1HIT / 合計{[PRJCTL.THROW.DAMAGE.DAMAGE_PERCENT]}】ダメージ / 魅了【{[PRJCTL.THROW.ABNORMAL.DURATION]秒} / 成功率:50%】を付与": "對HP比例最高的1個敵人造成【1HIT / 合計{[PRJCTL.THROW.DAMAGE.DAMAGE_PERCENT]}】傷害 / 附加魅惑【{[PRJCTL.THROW.ABNORMAL.DURATION]秒} / 成功率:50%】",
+  "最もHP割合が高い敵1体に【1HIT / 合計{[PRJCTL.THROW.DAMAGE.DAMAGE_PERCENT]}】ダメージ / 魅了【{[PRJCTL.THROW.ABNORMAL.DURATION]秒} / 成功率:50%】を付与": "對HP比例最高的1個敵人造成【1HIT / 合計{[PRJCTL.THROW.DAMAGE.DAMAGE_PERCENT]}】傷害 / 附加魅了【{[PRJCTL.THROW.ABNORMAL.DURATION]秒} / 成功率:50%】",
   "最も近い敵1体に【10HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ / 自身に紋章：衝撃を【1】付与": "對最近的1個敵人造成【10HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害 / 對自身施加紋章：衝擊【1】",
   "最も近い敵1体に【11HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ / ノックバック【Lv5】": "對最近的1個敵人造成【11HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害 / 擊退【Lv5】",
   "最も近い敵1体に【1HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ": "對最近的1個敵人造成【1HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害",
@@ -132,7 +132,7 @@
   "紋章：衝撃を5消費し、光・闇・無属性の味方フロント全体に紋章：衝撃を【2】付与": "消耗5個紋章：衝擊，為光・暗・無屬性我方前排全體施加紋章：衝擊【2】",
   "紋章：衝撃を5消費し、味方フロント全体に会心ダメージ倍率UP【{[PRJCTL.THROW.IMPACT.CRITICALDAMAGERATEUP.FIXED_PERCENT]}/ 10秒】を付与": "消耗5個紋章：衝擊，對我方前排全體附加會心傷害倍率提升【{[PRJCTL.THROW.IMPACT.CRITICALDAMAGERATEUP.FIXED_PERCENT]}/ 10秒】",
   "紋章：衝撃を5消費し、対象に防御力DOWN【{[IMPACTSUCCEED.PRJCTL.AOE.DEFENCEDOWN.RATE_PERCENT]} / 20秒】を付与": "消耗5個紋章：衝擊，為目標附加防禦力降低【{[IMPACTSUCCEED.PRJCTL.AOE.DEFENCEDOWN.RATE_PERCENT]} / 20秒】",
-  "紋章：衝撃を5消費し、対象に魅了【{[PRJCTL.LAND.IMPACTSUCCEED.ABNORMAL.DURATION]秒} / 成功率:100%】を付与": "消耗5個紋章：衝擊，對目標附加魅惑【{[PRJCTL.LAND.IMPACTSUCCEED.ABNORMAL.DURATION]秒} / 成功率:100%】",
+  "紋章：衝撃を5消費し、対象に魅了【{[PRJCTL.LAND.IMPACTSUCCEED.ABNORMAL.DURATION]秒} / 成功率:100%】を付与": "消耗5個紋章：衝擊，對目標附加魅了【{[PRJCTL.LAND.IMPACTSUCCEED.ABNORMAL.DURATION]秒} / 成功率:100%】",
   "紋章：衝撃を5消費し、自身に最大HP【{[IMPACT.RECOVER.HEAL_PERCENT]}】分の回復": "消耗5個紋章：衝擊，回復自身最大HP的【{[IMPACT.RECOVER.HEAL_PERCENT]}】",
   "紋章：衝撃を5消費し、自身に防御力UP【{[IMPACTSUCCEED.DEFENCEUP.RATE_PERCENT]} / 15秒】を付与 / ダメージ倍率が【{[IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】に変化": "消耗5個紋章：衝擊，對自身附加防禦力提升【{[IMPACTSUCCEED.DEFENCEUP.RATE_PERCENT]} / 15秒】 / 傷害倍率變為【{[IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】",
   "自身にノワール憑依【5秒】を付与 / 自身の前方範囲内にいる敵全体に【1HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ": "對自身附加諾瓦爾附身【5秒】 / 對自身前方範圍內的敵人全體造成【1HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害",
@@ -160,8 +160,8 @@
   "最も近い敵を中心とした範囲内にいる敵全体に【1HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】ダメージ / 攻撃力DOWN【{[PRJCTL.LAND.ATTACKDOWN.RATE_PERCENT]} / 15秒】を付与": "對以最近敵人為中心的範圍內全體敵人造成【1HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】傷害 / 施加攻擊力降低【{[PRJCTL.LAND.ATTACKDOWN.RATE_PERCENT]} / 15秒】",
   "最も近い敵を中心とした範囲内にいる敵全体に【5HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】ダメージ / 対象に喪失【{[PRJCTL.LAND.ABNORMAL.DURATION]秒} / 成功率:50%】を付与": "對以最近敵人為中心的範圍內全體敵人造成【5HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】傷害 / 對目標施加喪失【{[PRJCTL.LAND.ABNORMAL.DURATION]秒} / 成功率:50%】",
   "自身にノワール憑依【5秒】と紋章：衝撃を【1】付与 / 自身の前方範囲内にいる敵全体に【1HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ": "對自身施加諾瓦爾附身【5秒】與紋章：衝擊【1】 / 對自身前方範圍內的全體敵人造成【1HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害",
-  "自身に会心ダメージ倍率UP【{[CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】を付与 / 紋章：衝撃を5消費し、ノワール憑依が【20秒】に変化 / ダメージ倍率が【{[IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】に変化": "對自身施加暴擊傷害倍率提升【{[CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】 / 消耗5個紋章：衝擊，諾瓦爾附身變化為【20秒】 / 傷害倍率變為【{[IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】",
-  "自身に会心ダメージ倍率UP【{[PRJCTL.LAND.CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】を付与 / 紋章：衝撃を5消費し、ダメージ倍率が【{[PRJCTL.LAND.IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】に変化": "對自身施加暴擊傷害倍率提升【{[PRJCTL.LAND.CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】 / 消耗5個紋章：衝擊，傷害倍率變為【{[PRJCTL.LAND.IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】",
+  "自身に会心ダメージ倍率UP【{[CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】を付与 / 紋章：衝撃を5消費し、ノワール憑依が【20秒】に変化 / ダメージ倍率が【{[IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】に変化": "對自身施加爆擊傷害倍率提升【{[CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】 / 消耗5個紋章：衝擊，諾瓦爾附身變化為【20秒】 / 傷害倍率變為【{[IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】",
+  "自身に会心ダメージ倍率UP【{[PRJCTL.LAND.CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】を付与 / 紋章：衝撃を5消費し、ダメージ倍率が【{[PRJCTL.LAND.IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】に変化": "對自身施加爆擊傷害倍率提升【{[PRJCTL.LAND.CRITICALDAMAGERATEUP.FIXED_PERCENT]} / 15秒】 / 消耗5個紋章：衝擊，傷害倍率變為【{[PRJCTL.LAND.IMPACTSUCCEED.DAMAGE.DAMAGE_PERCENT]}】",
   "自身に紋章：情熱を【1】付与 / HPが最も高い敵1体に【1HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】ダメージ": "對自身施加紋章：熱情【1】 / 對生命最高的1個敵人造成【1HIT / 合計{[PRJCTL.LAND.DAMAGE.DAMAGE_PERCENT]}】傷害",
   "自身の前方範囲内にいる敵全体に【2HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】ダメージ ": "對自身前方範圍內的全體敵人造成【2HIT / 合計{[DAMAGE.DAMAGE_PERCENT]}】傷害"
 }
