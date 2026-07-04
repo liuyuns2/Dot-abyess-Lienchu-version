@@ -10067,6 +10067,7 @@
   },
   "m_payment_sub_categories": {
     "category_text": {
+      "マンスリー": "每月",
       "ウィークリー": "每週",
       "デイリー": "每日"
     }
