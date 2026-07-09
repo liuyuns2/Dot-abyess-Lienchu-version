@@ -906,5 +906,10 @@
     "system": "d41d8cd98f00b204e9800998ecf8427e",
     "ui_misc": "d41d8cd98f00b204e9800998ecf8427e"
   },
-  "hash": "39dc5d0ea292229b827e36319ed5effe"
+  "hash": "39dc5d0ea292229b827e36319ed5effe",
+  "novels_evs_all": "21a5ee6d984d3fe325d7aa2e8821803d",
+  "novels_hmn_all": "d1320f4aea8c6fed970a39241e1397b6",
+  "novels_hmr_all": "9bf87a048dcb74c116776e2a558eea1b",
+  "novels_mas_all": "4c64f5474019901244bd7b3b5f3afcdf",
+  "novels_men_all": "e9fe69608ee587f142bc0288358bf93a"
 }
