@@ -1,0 +1,56 @@
+name: Build novels bundles (TEST)
+
+# 當 TEST 的逐檔劇情文本（novels/）有更新時，自動重建 novels_<prefix>_all 分包
+# 並更新 manifest 的 md5，然後把產物 commit 回 repo。供 AbyssNovelBundle 插件一次抓取。
+# 只處理 dotabyss-translation-client-version-TEST（測試期範圍）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dotabyss-translation-client-version-TEST/novels/**'
+  workflow_dispatch: {}
+
+# 允許 workflow 用 GITHUB_TOKEN 推回 commit
+permissions:
+  contents: write
+
+# 避免多次觸發時互相覆蓋
+concurrency:
+  group: build-novels-bundles-test
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Rebuild novels bundles
+        run: python3 dotabyss-translation-client-version-TEST/tools/build_novels_all.py
+
+      - name: Commit & push if changed
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 只暫存產生器的輸出，避免掃到其他未追蹤檔（如 repo 根的 .zip）
+          git add \
+            dotabyss-translation-client-version-TEST/novels_evs_all/zh_Hant.json \
+            dotabyss-translation-client-version-TEST/novels_hmn_all/zh_Hant.json \
+            dotabyss-translation-client-version-TEST/novels_hmr_all/zh_Hant.json \
+            dotabyss-translation-client-version-TEST/novels_mas_all/zh_Hant.json \
+            dotabyss-translation-client-version-TEST/novels_men_all/zh_Hant.json \
+            dotabyss-translation-client-version-TEST/manifest/zh_Hant.json
+          if git diff --cached --quiet; then
+            echo "分包無變化，略過 commit。"
+          else
+            git commit -m "chore: 自動重建 TEST 劇情分包 [skip ci]"
+            git push
+          fi
