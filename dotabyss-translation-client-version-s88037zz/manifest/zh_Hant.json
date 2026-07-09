@@ -1,26 +1,26 @@
 {
-  "names": "19d7c48291c287767fa8713486e803e0",
-  "ui_texts": "762e15aa6db949c683b0421f5693f581",
-  "static": "ffc67da4bec209fea9fb885cde3d89f2",
+  "names": "a4b1863c5d0d6f513119728244294158",
+  "ui_texts": "29556d8a487b8a495dddcff1060cceb2",
+  "static": "29f3561498d28ed97003de29b0d40c16",
   "add_on": {
-    "ui_misc": "f8ebad7e43ebaefdfcc2ded87a8aab26"
+    "ui_misc": "d7501fbf6d9d619cb240f9012711fc00"
   },
   "other": {
-    "abyss_code": "d41d8cd98f00b204e9800998ecf8427e",
-    "bar": "d41d8cd98f00b204e9800998ecf8427e",
-    "dialogue": "d41d8cd98f00b204e9800998ecf8427e",
-    "dictionary": "d41d8cd98f00b204e9800998ecf8427e",
-    "equipment_effect": "d41d8cd98f00b204e9800998ecf8427e",
-    "facility": "d41d8cd98f00b204e9800998ecf8427e",
-    "materials": "d41d8cd98f00b204e9800998ecf8427e",
-    "mission": "d41d8cd98f00b204e9800998ecf8427e",
-    "system": "d41d8cd98f00b204e9800998ecf8427e",
-    "ui_misc": "d41d8cd98f00b204e9800998ecf8427e"
+    "abyss_code": "99914b932bd37a50b983c5e7c90ae93b",
+    "bar": "99914b932bd37a50b983c5e7c90ae93b",
+    "dialogue": "99914b932bd37a50b983c5e7c90ae93b",
+    "dictionary": "99914b932bd37a50b983c5e7c90ae93b",
+    "equipment_effect": "99914b932bd37a50b983c5e7c90ae93b",
+    "facility": "99914b932bd37a50b983c5e7c90ae93b",
+    "materials": "99914b932bd37a50b983c5e7c90ae93b",
+    "mission": "99914b932bd37a50b983c5e7c90ae93b",
+    "system": "99914b932bd37a50b983c5e7c90ae93b",
+    "ui_misc": "99914b932bd37a50b983c5e7c90ae93b"
   },
-  "hash": "39dc5d0ea292229b827e36319ed5effe",
-  "novels_evs_all": "21a5ee6d984d3fe325d7aa2e8821803d",
-  "novels_hmn_all": "d1320f4aea8c6fed970a39241e1397b6",
-  "novels_hmr_all": "9bf87a048dcb74c116776e2a558eea1b",
-  "novels_mas_all": "4c64f5474019901244bd7b3b5f3afcdf",
-  "novels_men_all": "e9fe69608ee587f142bc0288358bf93a"
+  "hash": "5dd34c10db6e5ed0f564e4da18a1b785",
+  "novels_evs_all": "591a72842ae4080f7d842c1e3c95d621",
+  "novels_hmn_all": "72b2bff11adf2bd98b0b7c4b541c5942",
+  "novels_hmr_all": "6562743b4c5fc79e84f0456188528507",
+  "novels_mas_all": "76001452edca98c5b25fd8f0f1ac043a",
+  "novels_men_all": "43de28e57cdce6086c82d4c2db2e476b"
 }
