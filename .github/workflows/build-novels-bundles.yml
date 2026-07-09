@@ -1,14 +1,15 @@
-name: Build novels bundles (TEST)
+name: Build novels bundles
 
-# 當 TEST 的逐檔劇情文本（novels/）有更新時，自動重建 novels_<prefix>_all 分包
-# 並更新 manifest 的 md5，然後把產物 commit 回 repo。供 AbyssNovelBundle 插件一次抓取。
-# 只處理 dotabyss-translation-client-version-TEST（測試期範圍）。
+# 當任一 client-version 資料夾的逐檔劇情文本（novels/）有更新時，自動重建
+# 該資料夾的 novels_<prefix>_all 分包並更新 manifest 的 md5，再把產物 commit 回 repo。
+# 供 AbyssNovelBundle 插件一次抓取。自動涵蓋所有含 tools/build_novels_all.py 的資料夾
+# （目前 TEST 與 s88037zz，未來新增也自動納入）。
 
 on:
   push:
     branches: [main]
     paths:
-      - 'dotabyss-translation-client-version-TEST/novels/**'
+      - 'dotabyss-translation-client-version-*/novels/**'
   workflow_dispatch: {}
 
 # 允許 workflow 用 GITHUB_TOKEN 推回 commit
@@ -17,7 +18,7 @@ permissions:
 
 # 避免多次觸發時互相覆蓋
 concurrency:
-  group: build-novels-bundles-test
+  group: build-novels-bundles
   cancel-in-progress: false
 
 jobs:
@@ -32,25 +33,38 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Rebuild novels bundles
-        run: python3 dotabyss-translation-client-version-TEST/tools/build_novels_all.py
-
-      - name: Commit & push if changed
+      - name: Rebuild novels bundles (每個有產生器的資料夾)
+        shell: bash
         run: |
           set -euo pipefail
+          shopt -s nullglob
+          scripts=(dotabyss-translation-client-version-*/tools/build_novels_all.py)
+          if [ ${#scripts[@]} -eq 0 ]; then
+            echo "找不到任何 build_novels_all.py，略過。"
+            exit 0
+          fi
+          for s in "${scripts[@]}"; do
+            echo "== 執行 $s =="
+            python3 "$s"
+          done
+
+      - name: Commit & push if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # 只暫存產生器的輸出，避免掃到其他未追蹤檔（如 repo 根的 .zip）
-          git add \
-            dotabyss-translation-client-version-TEST/novels_evs_all/zh_Hant.json \
-            dotabyss-translation-client-version-TEST/novels_hmn_all/zh_Hant.json \
-            dotabyss-translation-client-version-TEST/novels_hmr_all/zh_Hant.json \
-            dotabyss-translation-client-version-TEST/novels_mas_all/zh_Hant.json \
-            dotabyss-translation-client-version-TEST/novels_men_all/zh_Hant.json \
-            dotabyss-translation-client-version-TEST/manifest/zh_Hant.json
+          # 只暫存產生器的輸出（分包目錄 + manifest），避免掃到其他未追蹤檔（如 repo 根的 .zip）
+          paths=(dotabyss-translation-client-version-*/novels_*_all dotabyss-translation-client-version-*/manifest/zh_Hant.json)
+          if [ ${#paths[@]} -eq 0 ]; then
+            echo "沒有可暫存的產物。"
+            exit 0
+          fi
+          git add "${paths[@]}"
           if git diff --cached --quiet; then
             echo "分包無變化，略過 commit。"
           else
-            git commit -m "chore: 自動重建 TEST 劇情分包 [skip ci]"
+            git commit -m "chore: 自動重建劇情分包 [skip ci]"
             git push
           fi
