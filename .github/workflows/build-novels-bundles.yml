@@ -44,6 +44,11 @@ jobs:
             exit 0
           fi
           for s in "${scripts[@]}"; do
+            root=$(dirname "$(dirname "$s")")
+            if [ ! -d "$root/novels" ]; then
+              echo "== 略過 $s（無 novels/ 來源，僅維護分包）=="
+              continue
+            fi
             echo "== 執行 $s =="
             python3 "$s"
           done
