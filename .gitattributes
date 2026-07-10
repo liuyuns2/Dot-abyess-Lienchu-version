@@ -1,0 +1,2 @@
+# 翻譯 JSON 一律 LF，避免 Windows CRLF 導致 manifest md5 與 GitHub 服務內容不符
+*.json text eol=lf
