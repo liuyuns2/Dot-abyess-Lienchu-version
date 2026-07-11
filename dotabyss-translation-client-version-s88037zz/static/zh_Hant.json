@@ -3454,18 +3454,7 @@
       "自身のパラメータを反映した<br>\n<gradient=\"GachaSkillColorGrad\">敵を攻撃する大砲を召喚！</gradient>": "召喚一門繼承自身屬性並<br>\n<gradient=\"GachaSkillColorGrad\">攻擊敵人的大炮！</gradient>",
       "通常攻撃対象の敵を中心とした<br>\n<gradient=\"GachaSkillColorGrad\">範囲内にいる敵全体</gradient>にダメージを与える！": "對以普通攻擊目標敵人為中心的<br>\n<gradient=\"GachaSkillColorGrad\">範圍內所有敵人</gradient>造成傷害！"
     },
-    "skill_name": {
-      "カノンコール": "呼叫炮擊",
-      "ガチ恋♡デビルハート": "真愛♡惡魔之心",
-      "ストームワルツ": "風暴華爾茲",
-      "ドリルミサイル": "鑽頭導彈",
-      "バーニングロンド": "燃燒之輪",
-      "ヒールエール": "治癒麥酒",
-      "フロストスパイク": "冰刺",
-      "ライトニングアロー": "閃電箭",
-      "妖鬼炎殺撃": "妖鬼炎殺擊",
-      "胡蝶の時雨": "蝶之時雨"
-    }
+    "skill_name": {}
   },
   "m_missions": {
     "_unmatched": {
