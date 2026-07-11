@@ -1,9 +1,9 @@
 {
   "names": "e1c94179e0ef530c1003580835f70f8f",
-  "ui_texts": "43d7376476bc666723cc8bd3f3234181",
-  "static": "baabd495d2cd18b061941660532ac146",
+  "ui_texts": "8c28724cde7deb99afb8a9cbd8979c61",
+  "static": "d7a823d4ba8f39250ec8b4911d34690b",
   "add_on": {
-    "ui_misc": "d7501fbf6d9d619cb240f9012711fc00"
+    "ui_misc": "d591e3ad68e984ea2e8da737d086fa0b"
   },
   "other": {
     "abyss_code": "99914b932bd37a50b983c5e7c90ae93b",
@@ -17,7 +17,7 @@
     "system": "99914b932bd37a50b983c5e7c90ae93b",
     "ui_misc": "99914b932bd37a50b983c5e7c90ae93b"
   },
-  "hash": "9fcf18ab9f46459ad11807ca7ba4243d",
+  "hash": "c9b664c161493c471956755603968308",
   "novels_evs_all": "9ee2b3bc34398c09bbbb225a681743d0",
   "novels_hmn_all": "0ce09533a8e82e9212e439565962e5eb",
   "novels_hmr_all": "ff36ea0ae80806d1c4ab1392bf356eef",
