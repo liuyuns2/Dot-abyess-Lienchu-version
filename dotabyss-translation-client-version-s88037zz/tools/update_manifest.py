@@ -26,7 +26,10 @@ MANIFEST_PATH = ROOT / "manifest" / f"{LANG}.json"
 
 
 def md5_file(path: Path) -> str:
-    return hashlib.md5(path.read_bytes()).hexdigest()
+    # git 以 LF 存放 blob（見 .gitattributes: *.json text eol=lf），raw.githubusercontent
+    # 服務的也是 LF。若直接對工作區位元組做雜湊，Windows 上的 CRLF 檔會算出與玩家
+    # 實際下載內容不符的 hash，導致 names/static 靜默載不進去。故一律正規化成 LF 再算。
+    return hashlib.md5(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def compact_manifest_hash(manifest: dict[str, Any]) -> str:
