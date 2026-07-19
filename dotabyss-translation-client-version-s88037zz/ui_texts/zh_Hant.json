@@ -3518,5 +3518,7 @@
     "<color=#ff8232>アビスコイン50個消費</color>\r\n<color=#4cf37b>浸食率10減少</color>": "<color=#ff8232>消耗深淵硬幣50個</color>\r\n<color=#4cf37b>侵蝕率減少10</color>",
     "<color=#ff8232>アビスコイン50個消費</color>,<color=#4cf37b>浸食率10減少</color>": "<color=#ff8232>消耗深淵硬幣50個</color>,<color=#4cf37b>侵蝕率減少10</color>",
     "<color=#ff8232>アビスコイン50個消費</color>\r\n<color=#4cf37b>浸食率20減少</color>": "<color=#ff8232>消耗深淵硬幣50個</color>\r\n<color=#4cf37b>侵蝕率減少20</color>",
-    "<color=#ff8232>アビスコイン50個消費</color>,<color=#4cf37b>浸食率20減少</color>": "<color=#ff8232>消耗深淵硬幣50個</color>,<color=#4cf37b>侵蝕率減少20</color>"
+    "<color=#ff8232>アビスコイン50個消費</color>,<color=#4cf37b>浸食率20減少</color>": "<color=#ff8232>消耗深淵硬幣50個</color>,<color=#4cf37b>侵蝕率減少20</color>",
+    "拠点に送るアイテムを選択してください": "請選擇要送往據點的道具",
+    "拠点に送ったアイテムは、探索に失敗しても獲得できます。": "送往據點的道具，即使探索失敗也能取得。"
 }
