@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""把 novels/<id>/zh_Hant.json 依前綴合併成 novels_<prefix>_all/zh_Hant.json。
+"""把各來源的 <id>/zh_Hant.json 依前綴合併成 novels_<prefix>_all/zh_Hant.json。
+
+來源見 SOURCE_DIRS：novels/（已上線）＋ novels_untranslated_only/（尚未上線）。
+兩者合進同一批分包，未上線內容一旦上線就自動有翻譯，mod 端不需任何改動。
 
 目的：讓漢化插件在啟動時「一次」抓整包劇情文本，取代開劇情才逐檔抓 raw，
 藉此消除 raw.githubusercontent 的 429 限流（中間方案，不需版本更新器）。
@@ -25,35 +28,60 @@ LANG = "zh_Hant"
 
 # 腳本位於 <root>/tools/，資料根目錄是上一層
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-NOVELS_DIR = os.path.join(ROOT, "novels")
 MANIFEST_PATH = os.path.join(ROOT, "manifest", LANG + ".json")
+
+# 來源資料夾（依序掃描，後者不覆蓋前者已有的 novelId）
+#   novels/                   —— 已上線的劇情
+#   novels_untranslated_only/ —— 官方尚未上線的劇情，先譯好放著；
+#                                合進同樣的 novels_<prefix>_all 分包，
+#                                內容一上線就自動有翻譯，不必再改 mod。
+#                                未上線的 novelId 遊戲不會查詢，放著無害。
+SOURCE_DIRS = ["novels", "novels_untranslated_only"]
 
 
 def collect_by_prefix() -> dict[str, dict[str, dict]]:
-    """掃 novels/，依前綴分組。回傳 { prefix: { novelId: {原文:譯文} } }。"""
+    """掃 SOURCE_DIRS，依前綴分組。回傳 { prefix: { novelId: {原文:譯文} } }。"""
     groups: dict[str, dict[str, dict]] = defaultdict(dict)
-    for novel_id in sorted(os.listdir(NOVELS_DIR)):
-        if novel_id.startswith("."):
-            continue  # 跳過 .git / .agents 等隱藏目錄
-        novel_path = os.path.join(NOVELS_DIR, novel_id)
-        if not os.path.isdir(novel_path):
-            continue  # 跳過 translation_rules.md 之類的雜項檔
-        if "_" not in novel_id:
-            print(f"  [warn] 略過無前綴的 id：{novel_id}", file=sys.stderr)
+    seen: dict[str, str] = {}  # novelId -> 來自哪個來源，用來偵測重複
+    for src in SOURCE_DIRS:
+        src_dir = os.path.join(ROOT, src)
+        if not os.path.isdir(src_dir):
+            print(f"  [warn] 來源資料夾不存在，略過：{src}", file=sys.stderr)
             continue
-        lang_file = os.path.join(novel_path, LANG + ".json")
-        if not os.path.isfile(lang_file):
-            continue  # 沒有繁中就跳過
-        try:
-            with open(lang_file, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError) as e:
-            print(f"  [warn] 跳過壞檔 {lang_file}: {e}", file=sys.stderr)
-            continue
-        if not isinstance(data, dict) or not data:
-            continue
-        prefix = novel_id.split("_", 1)[0]
-        groups[prefix][novel_id] = data
+        count = 0
+        for novel_id in sorted(os.listdir(src_dir)):
+            if novel_id.startswith("."):
+                continue  # 跳過 .git / .agents 等隱藏目錄
+            novel_path = os.path.join(src_dir, novel_id)
+            if not os.path.isdir(novel_path):
+                continue  # 跳過 translation_rules.md 之類的雜項檔
+            if "_" not in novel_id:
+                print(f"  [warn] 略過無前綴的 id：{novel_id}", file=sys.stderr)
+                continue
+            if novel_id in seen:
+                # 同一個 novelId 出現在兩個來源：以先掃到的（已上線）為準
+                print(
+                    f"  [warn] {novel_id} 同時存在於 {seen[novel_id]} 與 {src}，"
+                    f"採用 {seen[novel_id]} 的版本",
+                    file=sys.stderr,
+                )
+                continue
+            lang_file = os.path.join(novel_path, LANG + ".json")
+            if not os.path.isfile(lang_file):
+                continue  # 沒有繁中就跳過
+            try:
+                with open(lang_file, encoding="utf-8") as f:
+                    data = json.load(f)
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"  [warn] 跳過壞檔 {lang_file}: {e}", file=sys.stderr)
+                continue
+            if not isinstance(data, dict) or not data:
+                continue
+            prefix = novel_id.split("_", 1)[0]
+            groups[prefix][novel_id] = data
+            seen[novel_id] = src
+            count += 1
+        print(f"  來源 {src}/: {count} 篇")
     return groups
 
 
@@ -72,8 +100,8 @@ def write_bundle(prefix: str, bundle: dict[str, dict]) -> tuple[str, int, float]
 
 
 def main() -> int:
-    if not os.path.isdir(NOVELS_DIR):
-        print(f"找不到 novels 目錄：{NOVELS_DIR}", file=sys.stderr)
+    if not any(os.path.isdir(os.path.join(ROOT, s)) for s in SOURCE_DIRS):
+        print(f"找不到任何來源資料夾：{SOURCE_DIRS}", file=sys.stderr)
         return 1
 
     groups = collect_by_prefix()
@@ -99,10 +127,19 @@ def main() -> int:
         )
 
     if manifest is not None:
-        with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
+        # 頂層 hash ＝「拿掉 hash 欄位後的最小化 JSON」的 md5。
+        # 各包 md5 一改，這個總 hash 就得跟著重算，否則插件端比對會對不上。
+        manifest.pop("hash", None)
+        minified = json.dumps(manifest, ensure_ascii=False, separators=(",", ":"))
+        manifest["hash"] = hashlib.md5(minified.encode("utf-8")).hexdigest()
+        # 一律 LF —— .gitattributes 對 *.json 設了 eol=lf
+        with open(MANIFEST_PATH, "w", encoding="utf-8", newline="\n") as f:
             json.dump(manifest, f, ensure_ascii=False, indent=2)
             f.write("\n")
-        print(f"已更新 manifest：{os.path.relpath(MANIFEST_PATH, ROOT)}")
+        print(
+            f"已更新 manifest：{os.path.relpath(MANIFEST_PATH, ROOT)}"
+            f"（總 hash={manifest['hash'][:12]}…）"
+        )
     else:
         print("（無 manifest/zh_Hant.json，插件端將不做 hash 比對）")
 
