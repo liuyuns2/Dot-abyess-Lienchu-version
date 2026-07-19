@@ -28,14 +28,24 @@ AbyssMod 有些畫面不是整句查字典，而是**先翻片段、組成完整
 在下面 RULES 加一筆即可。key/value 模板各留一個 {} 當填充位，
 source 指向「提供填充物的譯名表」。
 
-## ⚠️ 已知無法自動化的一族（勿手癢加進 RULES）
+## 兩種填充物來源
 
-`「{技能名}」の最大Lvが{0}に上昇！` 這族目前庫裡有 141 條、但**全是死 key**：
-它們用中文技能名組成，然而技能名依「維持原文」政策已從 static 整表移除
+- `static`：譯名表本身就是來源（如劇情標題，日文 -> 中文，取中文側）。
+- `masterdata`：**維持原文**的名字（能力名等）不在譯名表裡，得從 masterdata 撈
+  日文原名當填充物。masterdata 路徑見 MASTERDATA_DIR，不在 repo 內，
+  故該族規則在找不到 masterdata 時會自動略過（只警告、不中斷）。
+
+## ⚠️ 能力名這族為什麼填日文
+
+技能/能力名依「維持原文」政策已從 static 整表移除
 （m_character_abilities / m_character_action_skills / m_gacha_group_movies），
-遊戲實際組出來的是**日文原名**，對不上。要修得先從 dump/masterdata 取回
-日文技能名清單，repo 內沒有來源，故不放進 RULES。詳見記憶
-term-standard-and-consistency / skill-names-keep-original。
+所以 mod 翻不到名字、組出來的是**日文原名**。組合 key 必須跟著填日文原名。
+
+2026-07-19 稽核發現：庫裡 141 條這族組合有 131 條是政策改變前用**中文名**
+組成的死 key（永遠對不上），而 masterdata 的 151 個能力只有 8 個有可用的
+組合 key——還是因為漢字名中日同字而巧合對上的。故本腳本會**一併清掉死 key**
+（--prune，預設開啟）。詳見記憶 term-standard-and-consistency /
+skill-names-keep-original。
 """
 import hashlib
 import json
@@ -49,6 +59,11 @@ STATIC_PATH = os.path.join(ROOT, "static", LANG + ".json")
 UI_PATH = os.path.join(ROOT, "ui_texts", LANG + ".json")
 MANIFEST_PATH = os.path.join(ROOT, "manifest", LANG + ".json")
 
+# masterdata 不在 repo 內（使用者本機另外抓的官方資料）
+MASTERDATA_DIR = os.environ.get(
+    "DOTABYSS_MASTERDATA", r"D:\dotabyss-translation\Masterdata-main\data"
+)
+
 # 各檔案的縮排（沿用現況，避免整檔 diff）
 INDENT = {STATIC_PATH: 2, UI_PATH: 4}
 
@@ -56,10 +71,23 @@ INDENT = {STATIC_PATH: 2, UI_PATH: 4}
 RULES = [
     {
         "name": "劇情播放確認框",
-        # 填充物來源：static 的 (table, field)，取其「日文 -> 中文」的中文側
-        "source": ("m_novel_characters", "title"),
+        # static 來源：取譯名表 (table, field) 的「中文側」當填充物
+        "source": ("static", "m_novel_characters", "title"),
         "key_tmpl": "「{}」<br>を再生します。よろしいですか？",
         "value_tmpl": "「{}」<br>即將播放。確定嗎？",
+    },
+    {
+        "name": "能力最大Lv提升",
+        # masterdata 來源：取 (檔名, 欄位) 的日文原名當填充物
+        #   ——能力名維持原文，故 key 與 value 都填日文，value 保留「」把日文框住
+        "source": ("masterdata", "m_character_abilities.json", "name"),
+        "key_tmpl": "「{}」の最大Lvが{{0}}に上昇！",
+        "value_tmpl": "「{}」的最大等級提高到{{0}}！",
+        # 清掉「符合本模板、但填充物不在來源清單」的死 key
+        "prune": True,
+        # value 完全機械式套模板，故既有條目若寫法不同就一併校正
+        #   （劇情標題那族不設此旗標——那些 value 含人工譯文，不可覆蓋）
+        "canonical": True,
     },
 ]
 
@@ -96,53 +124,112 @@ def get_target_dict(name, static, ui):
     raise ValueError(f"未知的 target：{name}")
 
 
+def get_fillers(rule, static):
+    """依 rule["source"] 取出填充物清單。回傳 None 代表來源不可用、該規則應略過。"""
+    kind = rule["source"][0]
+
+    if kind == "static":
+        _, table, field = rule["source"]
+        pairs = static.get(table, {}).get(field)
+        if not pairs:
+            print(f"  [warn] 找不到譯名表 {table}/{field}，略過「{rule['name']}」", file=sys.stderr)
+            return None
+        # 只取「有中文譯文」的；譯文等於原文＝刻意維持原文（如二つ名），不生成
+        return sorted({zh for ja, zh in pairs.items() if zh and zh != ja})
+
+    if kind == "masterdata":
+        _, filename, field = rule["source"]
+        path = os.path.join(MASTERDATA_DIR, filename)
+        if not os.path.isfile(path):
+            print(
+                f"  [warn] 找不到 masterdata {path}，略過「{rule['name']}」"
+                f"（可用環境變數 DOTABYSS_MASTERDATA 指定目錄）",
+                file=sys.stderr,
+            )
+            return None
+        rows = load(path)
+        return sorted({r[field] for r in rows if r.get(field)})
+
+    raise ValueError(f"未知的 source 類型：{kind}")
+
+
+def find_stale(rule, target, fillers):
+    """找出「符合本模板、但填充物不在來源清單」的死 key。"""
+    prefix, suffix = rule["key_tmpl"].split("{}", 1)
+    suffix = suffix.replace("{{", "{").replace("}}", "}")
+    valid = {rule["key_tmpl"].format(z) for z in fillers}
+    return [
+        k
+        for k in target
+        if k.startswith(prefix) and k.endswith(suffix) and k not in valid
+    ]
+
+
 def main():
     check_only = "--check" in sys.argv
 
     static = load(STATIC_PATH)
     ui = load(UI_PATH)
 
-    missing_total = 0
-    added_total = 0
+    missing_total = stale_total = 0
+    added_total = pruned_total = fixed_total = 0
 
     for rule in RULES:
-        table, field = rule["source"]
-        pairs = static.get(table, {}).get(field)
-        if not pairs:
-            print(f"  [warn] 找不到來源表 {table}/{field}，略過「{rule['name']}」", file=sys.stderr)
+        fillers = get_fillers(rule, static)
+        if fillers is None:
             continue
-
-        # 只取「有中文譯文」的條目；譯文等於原文＝刻意維持原文（如二つ名），不生成
-        fillers = [zh for ja, zh in pairs.items() if zh and zh != ja]
 
         for target_name in TARGETS:
             target = get_target_dict(target_name, static, ui)
-            missing = [
-                z for z in fillers if rule["key_tmpl"].format(z) not in target
-            ]
-            missing_total += len(missing)
-            if missing and not check_only:
-                for z in missing:
-                    target[rule["key_tmpl"].format(z)] = rule["value_tmpl"].format(z)
-                added_total += len(missing)
-            status = "缺" if check_only else "補上"
-            print(
-                f"{rule['name']} → {target_name}: 來源 {len(fillers)} 條，"
-                f"{status} {len(missing)} 條"
+            missing = [z for z in fillers if rule["key_tmpl"].format(z) not in target]
+            stale = find_stale(rule, target, fillers) if rule.get("prune") else []
+            # 既有但 value 寫法與模板不符者（僅限 value 純機械式的規則）
+            offstyle = (
+                [
+                    z
+                    for z in fillers
+                    if rule["key_tmpl"].format(z) in target
+                    and target[rule["key_tmpl"].format(z)] != rule["value_tmpl"].format(z)
+                ]
+                if rule.get("canonical")
+                else []
             )
-            for z in missing[:10]:
-                print(f"    - {z}")
-            if len(missing) > 10:
-                print(f"    …另外 {len(missing) - 10} 條")
+            missing_total += len(missing)
+            stale_total += len(stale) + len(offstyle)
+
+            if not check_only:
+                for z in missing + offstyle:
+                    target[rule["key_tmpl"].format(z)] = rule["value_tmpl"].format(z)
+                for k in stale:
+                    del target[k]
+                added_total += len(missing)
+                pruned_total += len(stale)
+                fixed_total += len(offstyle)
+
+            verb = "缺" if check_only else "補上"
+            line = f"{rule['name']} → {target_name}: 來源 {len(fillers)} 條，{verb} {len(missing)} 條"
+            if rule.get("prune"):
+                line += f"，死 key {len(stale)} 條"
+            if offstyle:
+                line += f"，校正寫法 {len(offstyle)} 條"
+            print(line)
+            for z in missing[:5]:
+                print(f"    + {z}")
+            if len(missing) > 5:
+                print(f"    …另外 {len(missing) - 5} 條")
+            for k in stale[:5]:
+                print(f"    - {k}")
+            if len(stale) > 5:
+                print(f"    …另外 {len(stale) - 5} 條死 key")
 
     if check_only:
-        if missing_total:
-            print(f"\n共缺 {missing_total} 條組合 key。跑一次不帶 --check 即可補齊。")
+        if missing_total or stale_total:
+            print(f"\n共缺 {missing_total} 條、死 key {stale_total} 條。跑一次不帶 --check 即可處理。")
             return 1
-        print("\n組合 key 齊全，無缺口。")
+        print("\n組合 key 齊全，無缺口、無死 key。")
         return 0
 
-    if not added_total:
+    if not (added_total or pruned_total or fixed_total):
         print("\n組合 key 已齊全，未變更任何檔案。")
         return 0
 
@@ -160,7 +247,10 @@ def main():
         json.dump(manifest, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
-    print(f"\n共補 {added_total} 條，已更新 static / ui_texts / manifest。")
+    print(
+        f"\n共補 {added_total} 條、刪死 key {pruned_total} 條、校正寫法 {fixed_total} 條，"
+        f"已更新 static / ui_texts / manifest。"
+    )
     return 0
 
 
