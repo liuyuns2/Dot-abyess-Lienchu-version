@@ -50,6 +50,7 @@ skill-names-keep-original。
 import hashlib
 import json
 import os
+import re
 import sys
 
 LANG = "zh_Hant"
@@ -90,6 +91,20 @@ RULES = [
         "canonical": True,
     },
 ]
+
+# ── 深淵樓層事件卡片：兩個帶色標片段組成一張卡 ──────────────────────────
+# 遊戲把「代價」與「效果」兩個片段接起來再整句查一次，例如：
+#   <color=#ff8232>アビスコイン30個消費</color>\r\n<color=#4cf37b>浸食率10減少</color>
+# 片段本身在 ui_texts 已各自譯好，缺的是「接起來那一整句」。
+# 兩段順序會互換（截圖實證：有的卡片效果在上、代價在下），分隔符也有兩種，
+# 故對所有 (片段A, 片段B) 有序配對 × 分隔符 生成。
+#
+# 片段來源＝ui_texts 裡形如 <color=#XXXXXX>文字</color> 的單片段條目，
+# 所以只要日後補了新片段，再跑一次本腳本就會自動長出對應組合。
+PAIR_RULE = {
+    "name": "深淵事件卡片組合",
+    "separators": ["\r\n", ","],
+}
 
 # 組合 key 要寫進哪些地方（雙檔 fallback：不同畫面讀不同檔）
 #   ui_texts 是扁平字典；static 放在 m_texts/ja 這張表底下
@@ -165,6 +180,43 @@ def find_stale(rule, target, fillers):
     ]
 
 
+FRAGMENT_RE = re.compile(r"<color=#[0-9a-fA-F]{6}>[^<>]+</color>")
+
+
+def build_pairs(ui: dict, check_only: bool) -> int:
+    """把 ui_texts 裡的單片段兩兩接起來補上組合條目。回傳缺少（或補上）的條數。"""
+    frags = {k: v for k, v in ui.items() if FRAGMENT_RE.fullmatch(k)}
+    if len(frags) < 2:
+        return 0
+
+    def color(k: str) -> str:
+        return k[7:14].lower()
+
+    # 一張卡片＝一個「代價」＋一個「效果」，兩者色標不同（實測 #ff8232 代價 /
+    # #4cf37b 效果）。同色配對（效果＋效果）不會出現，不生成以免灌水。
+    missing = [
+        (a + sep + b, frags[a] + sep + frags[b])
+        for a in frags
+        for b in frags
+        if color(a) != color(b)
+        for sep in PAIR_RULE["separators"]
+        if a + sep + b not in ui
+    ]
+
+    print(
+        f"{PAIR_RULE['name']} → ui_texts: 片段 {len(frags)} 個，"
+        f"{'缺' if check_only else '補上'} {len(missing)} 條組合"
+    )
+    for key, _ in missing[:3]:
+        print("    + " + key.replace("\r\n", "\\r\\n")[:100])
+    if len(missing) > 3:
+        print(f"    …另外 {len(missing) - 3} 條")
+
+    if not check_only:
+        ui.update(dict(missing))
+    return len(missing)
+
+
 def main():
     check_only = "--check" in sys.argv
 
@@ -221,6 +273,12 @@ def main():
                 print(f"    - {k}")
             if len(stale) > 5:
                 print(f"    …另外 {len(stale) - 5} 條死 key")
+
+    # 片段兩兩配對那族（只寫 ui_texts —— 這是純 UI 字串、走字串 fallback）
+    pair_missing = build_pairs(ui, check_only)
+    missing_total += pair_missing
+    if not check_only:
+        added_total += pair_missing
 
     if check_only:
         if missing_total or stale_total:
