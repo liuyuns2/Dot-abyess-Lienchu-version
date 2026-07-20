@@ -1,7 +1,7 @@
 {
   "names": "6e823f89142b75b81eb7d7d02f03006a",
   "ui_texts": "5bb7c8e09789d827ae2552463bfaa9ea",
-  "static": "35419a5d0df5c46c0c4026abb4f65538",
+  "static": "e890cba7d979649abd562e55bae8af71",
   "add_on": {
     "equipment_combos": "f996049ee0e79bb2d1d5286465448bf7",
     "ui_misc": "f4d16822717d809248ef9fe6f264706b"
@@ -19,9 +19,9 @@
     "ui_misc": "99914b932bd37a50b983c5e7c90ae93b"
   },
   "novels_evs_all": "7867352e475c8ab678ef290c5c6bbe81",
-  "novels_hmn_all": "26f0f4c3d68e3f17d8929b3261be99b7",
+  "novels_hmn_all": "9b710fd07fada3f490ed99d5c8cdaa56",
   "novels_hmr_all": "54257c37bf1907885292e35c8f166b8e",
   "novels_mas_all": "841f494e9c620a30dd3b3a92807a354a",
   "novels_men_all": "01adf93de429b00e9d8dfd255f51b307",
-  "hash": "ce9f43135e5a10c791041d25e269ca8e"
+  "hash": "6e12f25bf6a5d2ed80dd66d7f6568357"
 }
