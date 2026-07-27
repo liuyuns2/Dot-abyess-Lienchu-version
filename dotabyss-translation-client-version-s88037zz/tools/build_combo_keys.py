@@ -258,14 +258,14 @@ def build_pairs(ui: dict, check_only: bool) -> int:
 
 
 def build_disaster(ui: dict, static: dict, check_only: bool) -> int:
-    """預生成凶化災厄活動台名（所有元素 × 模板）。已存在任何檔的 key 跳過。回傳缺數。"""
-    # 蒐集全庫已存在的 key（含 static 巢狀），避免與既有或別檔重複
+    """預生成凶化災厄活動台名（所有元素 × 模板）。回傳缺數。
+
+    ⚠️ 存在性只看 **ui_texts**（本函式的寫入目標）——不是全庫。實測（2026-07-28
+    玩家截圖）這族台名顯示走 runtime 字串 fallback（ui_texts），static 注入對它
+    無效。若把 static 也算進 have，會發生「氷河已在 static→被跳過→ui_texts 沒有→
+    畫面仍日文」的漏洞（氷河正是這樣掉的）。故只認 ui_texts。
+    """
     have = set(ui)
-    for table in static.values():
-        if isinstance(table, dict):
-            for field in table.values():
-                if isinstance(field, dict):
-                    have.update(field)
 
     pairs = []
     for e, z in DISASTER_ELEMENTS.items():
