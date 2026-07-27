@@ -118,7 +118,8 @@ FRAGMENT_SERIES = [
     ("<color=#ff8232>浸食率{n}上昇</color>", "<color=#ff8232>侵蝕率增加{n}</color>"),  # 代價
     ("<color=#4cf37b>浸食率{n}減少</color>", "<color=#4cf37b>侵蝕率減少{n}</color>"),  # 效果
 ]
-FRAGMENT_VALUES = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+# 上限 50（2026-07-28 使用者定案）：HP/浸食率 這族實際只到 50%，60~100 不生成以免灌大 ui_texts
+FRAGMENT_VALUES = [10, 20, 30, 40, 50]
 
 # ── 凶化災厄活動台名：預生成所有「災厄元素 × 模板」 ────────────────────────
 # 這族台名不是組合再查詢，而是純 masterdata 字串（m_event_disaster_quests/name
