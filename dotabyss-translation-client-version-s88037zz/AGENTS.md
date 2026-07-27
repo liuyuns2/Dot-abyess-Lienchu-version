@@ -21,6 +21,20 @@ Hash ownership:
 
 Never assume CDN or local game cache will refresh correctly unless manifest hashes match the current file contents.
 
+## Permanent translation exclusions and emblem colors
+
+- Keep `m_character_abilities` and `m_character_action_skills` in the original language.
+  - Exclude both tables from Masterdata missing-entry reports, pending-translation files, translation batches, and automated write-back.
+  - Do not treat untranslated values in these two tables as misses.
+- Emblem terms in Traditional Chinese values must always include their color tags, even when the Japanese source does not contain a color tag:
+  - `紋章：情熱` → `<color=#FF5050>紋章：情熱</color>`
+  - In `m_enchantment_details` equipment enchantment/effect descriptions and names:
+    `紋章：衝撃` → `<color=#00C0FF>紋章：衝擊</color>`
+  - Everywhere else:
+    `紋章：衝撃` → `<color=#6B8CFF>紋章：衝擊</color>`
+  - Normalize legacy `紋章：熱情` to `紋章：情熱`.
+  - This is an explicit project exception to source-tag inventory preservation; do not remove these value-side tags merely because the source key is untagged.
+
 ## AbyssMod dump lookup memory
 
 Treat dump files as runtime lookup evidence, not as translation-category names.
