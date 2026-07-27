@@ -106,6 +106,20 @@ PAIR_RULE = {
     "separators": ["\r\n", ","],
 }
 
+# ── 深淵事件卡片的「數值系列」單片段 ─────────────────────────────────────
+# 卡片的代價/效果數值隨樓層深度變大（2026-07-28 玩家截圖：HP40%減少、浸食率30上昇
+# 都超出原本手補的 10/20/30 範圍→片段不存在→組合無法生成→整句日文）。
+# 這 4 個系列可枚舉，故預生成到 100，再由 build_pairs 自動兩兩組合，一勞永逸。
+# ⚠️ %全半形是遊戲資料的既有不一致，必須逐系列保留：減少=半形%、回復=全形％。
+# 模板已用現有 10/20/30 片段自證逐字相符。
+FRAGMENT_SERIES = [
+    ("<color=#ff8232>HP{n}%減少</color>", "<color=#ff8232>HP減少{n}%</color>"),   # 代價·半形%
+    ("<color=#4cf37b>HP{n}％回復</color>", "<color=#4cf37b>回復HP{n}％</color>"),   # 效果·全形％
+    ("<color=#ff8232>浸食率{n}上昇</color>", "<color=#ff8232>侵蝕率增加{n}</color>"),  # 代價
+    ("<color=#4cf37b>浸食率{n}減少</color>", "<color=#4cf37b>侵蝕率減少{n}</color>"),  # 效果
+]
+FRAGMENT_VALUES = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
 # ── 凶化災厄活動台名：預生成所有「災厄元素 × 模板」 ────────────────────────
 # 這族台名不是組合再查詢，而是純 masterdata 字串（m_event_disaster_quests/name
 # 等）。但每期活動只換「災厄元素」（目前 氷河，未來輪 火山/砂嵐/…），模板固定。
@@ -257,6 +271,32 @@ def build_pairs(ui: dict, check_only: bool) -> int:
     return len(missing)
 
 
+def build_fragments(ui: dict, check_only: bool) -> int:
+    """預生成深淵事件卡片的數值系列單片段（HP/浸食率 × 10~100）。回傳缺數。
+
+    要在 build_pairs 之前跑——build_pairs 靠這些單片段兩兩組合。
+    """
+    missing = []
+    for kt, vt in FRAGMENT_SERIES:
+        for n in FRAGMENT_VALUES:
+            k = kt.replace("{n}", str(n))
+            if k not in ui:
+                missing.append((k, vt.replace("{n}", str(n))))
+
+    print(
+        f"深淵事件數值片段 → ui_texts: {len(FRAGMENT_SERIES)} 系列×{len(FRAGMENT_VALUES)}值，"
+        f"{'缺' if check_only else '補上'} {len(missing)} 條"
+    )
+    for k, _ in missing[:3]:
+        print("    + " + k)
+    if len(missing) > 3:
+        print(f"    …另外 {len(missing) - 3} 條")
+
+    if not check_only:
+        ui.update(dict(missing))
+    return len(missing)
+
+
 def build_disaster(ui: dict, static: dict, check_only: bool) -> int:
     """預生成凶化災厄活動台名（所有元素 × 模板）。回傳缺數。
 
@@ -349,6 +389,12 @@ def main():
                 print(f"    - {k}")
             if len(stale) > 5:
                 print(f"    …另外 {len(stale) - 5} 條死 key")
+
+    # 先補齊數值系列單片段（HP/浸食率 × 10~100），供 build_pairs 組合
+    frag_missing = build_fragments(ui, check_only)
+    missing_total += frag_missing
+    if not check_only:
+        added_total += frag_missing
 
     # 片段兩兩配對那族（只寫 ui_texts —— 這是純 UI 字串、走字串 fallback）
     pair_missing = build_pairs(ui, check_only)
