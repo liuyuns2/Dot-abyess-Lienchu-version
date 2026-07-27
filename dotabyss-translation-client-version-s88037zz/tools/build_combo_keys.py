@@ -106,6 +106,39 @@ PAIR_RULE = {
     "separators": ["\r\n", ","],
 }
 
+# ── 凶化災厄活動台名：預生成所有「災厄元素 × 模板」 ────────────────────────
+# 這族台名不是組合再查詢，而是純 masterdata 字串（m_event_disaster_quests/name
+# 等）。但每期活動只換「災厄元素」（目前 氷河，未來輪 火山/砂嵐/…），模板固定。
+# 若現在就把 6~7 個地形元素 × 所有模板的 key 都生成好，未來新元素的活動一上線、
+# 遊戲查該台名時就直接命中，不必等抓 masterdata。
+#
+# 元素中譯來源＝ m_encounter_quests/name 的「【X】YYの階層」既有譯法；新增元素
+# 只需在此補一行。模板格式全部照既有 氷河 版逐字比對鎖定（見 commit 歷史）。
+# 生成寫進 ui_texts（runtime fallback 一定攔得到，不管遊戲從哪個欄位顯示）；
+# 已存在於任何檔的 key 會自動跳過，不覆蓋、不重複。
+DISASTER_ELEMENTS = {
+    "氷河": "冰河",
+    "火山": "火山",
+    "砂嵐": "沙暴",
+    "廃墟": "廢墟",
+    "闇": "暗",
+    "光": "光",
+    "煉獄": "煉獄",
+}
+# (key 模板, value 模板)；{e}=日文元素、{z}=中文元素
+DISASTER_TEMPLATES = [
+    ("凶化厄災 -{e}-", "凶化災厄－{z}－"),
+    ("凶化厄災 -{e}- ", "凶化災厄－{z}－"),  # 尾空格變體（masterdata 實有）
+    ("凶化厄災 -{e}- に出撃します。", "出擊討伐凶化災厄－{z}－。"),
+    ("凶化厄災 -{e}-に出撃します。", "出擊討伐凶化災厄－{z}－。"),
+    ("凶化厄災戦 -{e}-", "凶化災厄戰－{z}－"),
+    ("凶化厄災戦-{e}- Chaosをクリアで解放", "通關凶化災厄戰－{z}－Chaos後解放"),
+    ("凶化厄災戦　{e}", "凶化災厄戰　{z}"),  # 全形空格（登入公告）
+]
+# 難度別「クリア記念！」（付費商品名）。難度名不譯，照既有 氷河 版。
+DISASTER_DIFF_TEMPLATE = ("凶化厄災 -{e}- {d}クリア記念！", "凶化災厄－{z}－{d}通關紀念！")
+DISASTER_DIFFS = ["Normal", "Hard", "Very Hard", "Chaos"]
+
 # 組合 key 要寫進哪些地方（雙檔 fallback：不同畫面讀不同檔）
 #   ui_texts 是扁平字典；static 放在 m_texts/ja 這張表底下
 TARGETS = ["ui_texts", "static:m_texts/ja"]
@@ -217,6 +250,42 @@ def build_pairs(ui: dict, check_only: bool) -> int:
     return len(missing)
 
 
+def build_disaster(ui: dict, static: dict, check_only: bool) -> int:
+    """預生成凶化災厄活動台名（所有元素 × 模板）。已存在任何檔的 key 跳過。回傳缺數。"""
+    # 蒐集全庫已存在的 key（含 static 巢狀），避免與既有或別檔重複
+    have = set(ui)
+    for table in static.values():
+        if isinstance(table, dict):
+            for field in table.values():
+                if isinstance(field, dict):
+                    have.update(field)
+
+    pairs = []
+    for e, z in DISASTER_ELEMENTS.items():
+        for kt, vt in DISASTER_TEMPLATES:
+            pairs.append((kt.replace("{e}", e), vt.replace("{z}", z)))
+        kt, vt = DISASTER_DIFF_TEMPLATE
+        for d in DISASTER_DIFFS:
+            pairs.append(
+                (kt.replace("{e}", e).replace("{d}", d),
+                 vt.replace("{z}", z).replace("{d}", d))
+            )
+    missing = [(k, v) for k, v in pairs if k not in have]
+
+    print(
+        f"凶化災厄活動台名 → ui_texts: {len(DISASTER_ELEMENTS)} 元素，"
+        f"{'缺' if check_only else '補上'} {len(missing)} 條（已存在自動跳過）"
+    )
+    for k, _ in missing[:3]:
+        print("    + " + k)
+    if len(missing) > 3:
+        print(f"    …另外 {len(missing) - 3} 條")
+
+    if not check_only:
+        ui.update(dict(missing))
+    return len(missing)
+
+
 def main():
     check_only = "--check" in sys.argv
 
@@ -279,6 +348,12 @@ def main():
     missing_total += pair_missing
     if not check_only:
         added_total += pair_missing
+
+    # 凶化災厄活動台名預生成（只寫 ui_texts）
+    disaster_missing = build_disaster(ui, static, check_only)
+    missing_total += disaster_missing
+    if not check_only:
+        added_total += disaster_missing
 
     if check_only:
         if missing_total or stale_total:
