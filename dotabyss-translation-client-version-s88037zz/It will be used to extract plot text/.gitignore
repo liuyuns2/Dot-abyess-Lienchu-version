@@ -1,0 +1,8 @@
+# Python 虛擬環境（接手者本機建立，不進版控）
+.venv/
+__pycache__/
+*.pyc
+
+# 執行產物（預設輸出在 repo 外，這裡再擋一層保險）
+output/
+*.log

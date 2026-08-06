@@ -1,15 +1,34 @@
 ﻿[CmdletBinding()]
 param(
     [string]$UpdateDate = (Get-Date -Format "yyyy-MM-dd"),
-    [string]$BaseDir = "E:\離線板",
-    [string]$RepoRoot = "D:\dotabyss-translation\GITHUB-dotabyss-translation",
+    # 輸出根目錄；預設放在 repo 外的同層 dotabyss-output，避免污染版控
+    [string]$BaseDir = "",
+    # 翻譯 repo 根（含 -X- 與 Dot-abyess-Lienchu-version 的那層）；預設自動推導
+    [string]$RepoRoot = "",
     [string]$PythonExe = ""
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$filesDir = Join-Path $BaseDir "files"
+# ── 路徑自動推導（本腳本位於 <repo根>/Dot-abyess-Lienchu-version/
+#    dotabyss-translation-client-version-s88037zz/It will be used to extract plot text/tools/） ──
+$filesDir = $PSScriptRoot
+if (-not $filesDir) { $filesDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
+
+if (-not $RepoRoot) {
+    # 從 tools/ 往上 4 層即 repo 根（含 -X- 與 Dot-abyess-Lienchu-version 的那層）
+    $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $filesDir "..\..\..\..")).Path
+}
+if (-not $BaseDir) {
+    # 預設輸出到 repo 根的同層 dotabyss-output（不進版控）
+    $BaseDir = Join-Path (Split-Path -Parent $RepoRoot) "dotabyss-output"
+}
+
+Write-Host "工具目錄 : $filesDir"
+Write-Host "Repo 根  : $RepoRoot"
+Write-Host "輸出根   : $BaseDir"
+Write-Host ""
 $outputRoot = Join-Path $BaseDir "output"
 $outputDir = Join-Path $outputRoot ("official_update_" + $UpdateDate)
 $assetsJson = Join-Path $outputDir "assets.json"
@@ -35,8 +54,9 @@ function Resolve-Python {
 
     $candidates = @()
     if ($Requested) { $candidates += $Requested }
+    # venv 建在工具目錄或其上層都認
     $candidates += (Join-Path $filesDir ".venv\Scripts\python.exe")
-    $candidates += "C:\Users\huang\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+    $candidates += (Join-Path (Split-Path -Parent $filesDir) ".venv\Scripts\python.exe")
 
     foreach ($candidate in $candidates) {
         if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
@@ -46,7 +66,7 @@ function Resolve-Python {
 
     $command = Get-Command python -ErrorAction SilentlyContinue
     if ($command) { return $command.Source }
-    throw "找不到 Python。請先依《官方更新交接手冊.md》建立 .venv。"
+    throw "找不到 Python。請先在工具目錄建立 .venv（見 README.md），或用 -PythonExe 指定。"
 }
 
 function Invoke-Python {
