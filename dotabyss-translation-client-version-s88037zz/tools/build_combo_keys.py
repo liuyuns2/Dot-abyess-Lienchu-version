@@ -47,6 +47,9 @@ source 指向「提供填充物的譯名表」。
 （--prune，預設開啟）。詳見記憶 term-standard-and-consistency /
 skill-names-keep-original。
 """
+
+# TODO:把MASTERDATA路徑改為參數
+
 import hashlib
 import json
 import os

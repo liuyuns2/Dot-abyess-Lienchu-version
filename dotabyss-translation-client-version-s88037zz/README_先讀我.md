@@ -60,7 +60,7 @@ LF 的設定。少了它 → md5 對不上 → **玩家永遠拿到舊翻譯**�
 > 翻譯是**用日文原文當 key 去精確比對**。
 > 所以最大的風險不是翻錯，而是**「翻了但沒生效」**——
 > key 差一個字元、manifest 沒更新、寫錯檔案，都會讓翻譯靜默失效。
-
+    
 ### 目錄速查
 
 | 路徑 | 是什麼 |
@@ -81,3 +81,40 @@ LF 的設定。少了它 → md5 對不上 → **玩家永遠拿到舊翻譯**�
 - Python 3.12（`tools/*.py` 只用標準函式庫，不必裝套件）
 - 劇情抓取工具鏈需另建 venv，見該資料夾 README
 - 需要能實機進遊戲驗證（有些字串只有實機才驗得出來）
+
+# 流程
+## 劇情
+1. RUN
+    ```bash
+    OfficialNovelUpdate.ps1
+    ```
+2. dotabyss-output\output\official_update_2026-08-06\pending_novels 內 翻譯
+3. 翻譯好的資料夾s 扔進 dotabyss-translation-client-version-s88037zz\novels
+4. RUN
+    ```bash
+    tools/build_    novels_all.py
+    ```
+5. RUN
+    ```bash 
+    tools/update_manifest.py
+    ```
+
+## Masterdata->劇情以外 
+1. git clone https://github.com/DotAbyss/Masterdata 拿新的masterdata
+2. 比對新版master data與當前版本差別
+    ```bash
+    python extract_masterdata_missing.py --current <dotabyss-translation-client-version-s88037zz資料夾> --master <新版master資料夾> --output 輸出資料夾
+    ```
+3. 翻譯"待翻譯.json"
+4. 合併回static/zh_Hant.json
+    ```bash
+    python merge_translated.py --input "<輸出資料夾>/待翻譯,json" --dry-run
+    ```
+5. RUN
+    ```bash
+    DOTABYSS_MASTERDATA="<masterdata路徑>" python tools/build_combo_keys.py
+    ```
+6. RUN
+    ```bash 
+    tools/update_manifest.py
+    ```
