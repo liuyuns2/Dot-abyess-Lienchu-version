@@ -16,18 +16,28 @@ $ErrorActionPreference = "Stop"
 $filesDir = $PSScriptRoot
 if (-not $filesDir) { $filesDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 
+# 本 repo 的 client-version 目錄＝從 tools/ 往上 2 層（一定存在，clone 下來就有）
+$clientRoot = (Resolve-Path -LiteralPath (Join-Path $filesDir "..\..")).Path
+# 本 repo 根（Dot-abyess-Lienchu-version）＝再往上 1 層
+$thisRepoRoot = (Resolve-Path -LiteralPath (Join-Path $clientRoot "..")).Path
+
 if (-not $RepoRoot) {
-    # 從 tools/ 往上 4 層即 repo 根（含 -X- 與 Dot-abyess-Lienchu-version 的那層）
-    $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $filesDir "..\..\..\..")).Path
+    # 選用：若同層另有 -X- 這個獨立 repo（原作者環境），把它一起當翻譯記憶
+    $parent = Split-Path -Parent $thisRepoRoot
+    if (Test-Path -LiteralPath (Join-Path $parent "-X-\novels") -PathType Container) {
+        $RepoRoot = $parent
+    }
 }
 if (-not $BaseDir) {
-    # 預設輸出到 repo 根的同層 dotabyss-output（不進版控）
-    $BaseDir = Join-Path (Split-Path -Parent $RepoRoot) "dotabyss-output"
+    # 預設輸出到本 repo 的同層 dotabyss-output（不進版控）
+    $BaseDir = Join-Path (Split-Path -Parent $thisRepoRoot) "dotabyss-output"
 }
 
-Write-Host "工具目錄 : $filesDir"
-Write-Host "Repo 根  : $RepoRoot"
-Write-Host "輸出根   : $BaseDir"
+Write-Host "工具目錄   : $filesDir"
+Write-Host "本 repo    : $thisRepoRoot"
+Write-Host "輸出根     : $BaseDir"
+if ($RepoRoot) { Write-Host "額外記憶庫 : $RepoRoot\-X-\novels" }
+else { Write-Host "額外記憶庫 : （無 -X-，僅用本 repo 的 novels 當翻譯記憶）" }
 Write-Host ""
 $outputRoot = Join-Path $BaseDir "output"
 $outputDir = Join-Path $outputRoot ("official_update_" + $UpdateDate)
@@ -44,10 +54,15 @@ $statsCsv = Join-Path $outputDir "pending_translation_stats.csv"
 $validationLog = Join-Path $outputDir "pending_validation.txt"
 $l2dReport = Join-Path $outputDir "l2d_changes.txt"
 
-$primaryNovels = Join-Path $RepoRoot "-X-\novels"
-$clientRoot = Join-Path $RepoRoot "Dot-abyess-Lienchu-version\dotabyss-translation-client-version-s88037zz"
+# $clientRoot 已在上方由腳本位置推導，不再依賴外層目錄名
 $clientNovels = Join-Path $clientRoot "novels"
 $clientUntranslated = Join-Path $clientRoot "novels_untranslated_only"
+# -X- 為選用：僅原作者環境有；沒有就只用本 repo 的兩個 novels 當翻譯記憶
+$primaryNovels = ""
+if ($RepoRoot) {
+    $candidate = Join-Path $RepoRoot "-X-\novels"
+    if (Test-Path -LiteralPath $candidate -PathType Container) { $primaryNovels = $candidate }
+}
 
 function Resolve-Python {
     param([string]$Requested)
@@ -141,9 +156,8 @@ function Write-L2DChanges {
 }
 
 Assert-Directory $filesDir "工具資料夾"
-Assert-Directory $primaryNovels "主要翻譯 novels"
-Assert-Directory $clientNovels "客戶端 novels"
-Assert-Directory $clientUntranslated "客戶端 novels_untranslated_only"
+Assert-Directory $clientNovels "本 repo novels"
+Assert-Directory $clientUntranslated "本 repo novels_untranslated_only"
 
 $script:PythonExe = Resolve-Python $PythonExe
 $localPackages = Join-Path $filesDir ".python_packages"
@@ -198,15 +212,18 @@ Invoke-Python @(
     "--write-raw"
 )
 
-Write-Host "[5/9] 以日文 key 套用三個現有來源的既有翻譯..." -ForegroundColor Cyan
-Invoke-Python @(
+Write-Host "[5/9] 以日文 key 套用既有翻譯（翻譯記憶）..." -ForegroundColor Cyan
+$memoryArgs = @(
     (Join-Path $filesDir "FillPendingFromTranslationMemory.py"),
-    "--pending", $novelsAll,
-    "--memory-dir", $primaryNovels,
+    "--pending", $novelsAll
+)
+if ($primaryNovels) { $memoryArgs += @("--memory-dir", $primaryNovels) }
+$memoryArgs += @(
     "--memory-dir", $clientNovels,
     "--memory-dir", $clientUntranslated,
     "--lang", "zh_Hant.json"
 )
+Invoke-Python $memoryArgs
 
 Write-Host "[6/9] 產生空值報告（包含既有資料夾內的新句子）..." -ForegroundColor Cyan
 Invoke-Python @(
@@ -223,14 +240,22 @@ Invoke-Python @(
     "--novels", $novelsAll,
     "--output", $pendingDir
 )
-Invoke-Python @(
+# --repo 為必要參數：有 -X- 就以它為基準並排除本 repo 兩處；
+# 沒有 -X- 時改以本 repo novels 為基準，只排除 novels_untranslated_only
+$newFolderArgs = @(
     (Join-Path $filesDir "CopyNovelFoldersMissingFromRepo.py"),
-    "--source", $novelsAll,
-    "--repo", $primaryNovels,
-    "--exclude", $clientNovels,
+    "--source", $novelsAll
+)
+if ($primaryNovels) {
+    $newFolderArgs += @("--repo", $primaryNovels, "--exclude", $clientNovels)
+} else {
+    $newFolderArgs += @("--repo", $clientNovels)
+}
+$newFolderArgs += @(
     "--exclude", $clientUntranslated,
     "--output", $newFoldersDir
 )
+Invoke-Python $newFolderArgs
 
 Write-Host "[8/9] 統計與驗證 pending_novels..." -ForegroundColor Cyan
 Invoke-Python @(

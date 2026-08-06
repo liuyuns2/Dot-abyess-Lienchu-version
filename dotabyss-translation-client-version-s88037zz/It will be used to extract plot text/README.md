@@ -32,35 +32,38 @@ Set-Location "<這個資料夾>\tools"
 .\OfficialNovelUpdate.ps1
 ```
 
-**路徑會自動推導，不用改腳本。** 執行時會先印出它推導的位置，確認無誤再讓它跑：
+**路徑全部自動推導，clone 下來直接能跑，不用改腳本。**
+執行時會先印出推導結果，確認無誤再讓它跑：
 
 ```
-工具目錄 : ...\It will be used to extract plot text\tools
-Repo 根  : ...\GITHUB-dotabyss-translation
-輸出根   : ...\dotabyss-output        ← 在 repo 外，不會污染版控
+工具目錄   : ...\It will be used to extract plot text\tools
+本 repo    : ...\Dot-abyess-Lienchu-version
+輸出根     : ...\dotabyss-output      ← 在 repo 外，不會污染版控
+額外記憶庫 : （無 -X-，僅用本 repo 的 novels 當翻譯記憶）
 ```
 
-推導規則：`Repo 根` = 從 `tools/` 往上 4 層（即含 `-X-` 與
-`Dot-abyess-Lienchu-version` 的那層）；`輸出根` = repo 根的同層 `dotabyss-output`。
+推導規則以**本腳本的位置**為基準，不依賴外層目錄叫什麼名字。
+
+### 關於「翻譯記憶」
+
+腳本會拿既有翻譯自動填好能沿用的句子，只留真正的新句子給你翻。來源：
+
+| 來源 | 說明 |
+|---|---|
+| `<本 repo>\...\novels` | 一定會用 |
+| `<本 repo>\...\novels_untranslated_only` | 一定會用 |
+| `<同層>\-X-\novels` | **選用**。這是原作者的另一個獨立 repo，接手者通常沒有；偵測不到就自動略過，不影響執行 |
+
+若你手上也有 `-X-` 那個 repo，把它跟本 repo 放在同一層即可自動被認出。
 
 ### 需要覆寫時
 
-若你的目錄結構不同（例如 repo 放在別處、想把輸出放到別的磁碟）：
-
 ```powershell
-.\OfficialNovelUpdate.ps1 -RepoRoot "X:\你的\GITHUB-dotabyss-translation" -BaseDir "X:\輸出"
-.\OfficialNovelUpdate.ps1 -UpdateDate "2026-08-06"      # 補跑指定日期
+.\OfficialNovelUpdate.ps1 -UpdateDate "2026-08-06"        # 補跑指定日期
+.\OfficialNovelUpdate.ps1 -BaseDir "X:\輸出"               # 換輸出位置
+.\OfficialNovelUpdate.ps1 -RepoRoot "X:\含-X-的那層"        # 指定額外記憶庫
 .\OfficialNovelUpdate.ps1 -PythonExe "C:\Python312\python.exe"
 ```
-
-`RepoRoot` 一定要指對，因為腳本會讀底下三個 novels 位置當「翻譯記憶」
-（把能沿用的舊翻譯自動填好，只留真正的新句子給你翻）：
-
-- `-X-\novels`
-- `Dot-abyess-Lienchu-version\...\novels`
-- `Dot-abyess-Lienchu-version\...\novels_untranslated_only`
-
-指錯的話腳本會直接報錯停下（不會默默跑出錯誤結果）。
 
 ## 這裡「沒有」什麼
 
