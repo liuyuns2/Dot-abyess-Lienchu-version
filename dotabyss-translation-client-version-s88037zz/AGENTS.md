@@ -23,9 +23,11 @@ Never assume CDN or local game cache will refresh correctly unless manifest hash
 
 ## Permanent translation exclusions and emblem colors
 
-- Keep `m_character_abilities` and `m_character_action_skills` in the original language.
-  - Exclude both tables from Masterdata missing-entry reports, pending-translation files, translation batches, and automated write-back.
-  - Do not treat untranslated values in these two tables as misses.
+- Keep `m_character_abilities`, `m_character_action_skills`, and `m_gacha_group_movies/skill_name` in the original language.
+  - These three tables hold the same player skill/ability names; all must stay untranslated.
+  - Exclude all three from Masterdata missing-entry reports, pending-translation files, translation batches, and automated write-back.
+  - Do not treat untranslated values in these tables as misses.
+  - Verify after every batch: all three must be empty objects.
 - Emblem terms in Traditional Chinese values must always include their color tags, even when the Japanese source does not contain a color tag:
   - `紋章：情熱` → `<color=#FF5050>紋章：情熱</color>`
   - In `m_enchantment_details` equipment enchantment/effect descriptions and names:

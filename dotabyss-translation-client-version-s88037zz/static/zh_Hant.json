@@ -3759,21 +3759,7 @@
       "最も近い敵を中心とした範囲内にいる<gradient=\"GachaSkillColorGrad\">敵全体に</gradient>\n<gradient=\"GachaSkillColorGrad\">ダメージを与え、 自身に紋章：情熱を付与！</gradient>": "以最近的敵人為中心，對範圍內的<gradient=\"GachaSkillColorGrad\">全體敵人</gradient>\n<gradient=\"GachaSkillColorGrad\">造成傷害，並賦予自身<color=#FF5050>紋章：情熱</color>！</gradient>",
       "自身にステラレコードを付与し、\n<gradient=\"GachaSkillColorGrad\"> 敵全体にダメージ</gradient> を与える！": "賦予自身星辰紀錄，\n並對<gradient=\"GachaSkillColorGrad\">全體敵人造成傷害</gradient>！"
     },
-    "skill_name": {
-      "カノンコール": "加農召喚",
-      "ガチ恋♡デビルハート": "真愛♡惡魔之心",
-      "スターリーレイン": "星辰之雨",
-      "ストームワルツ": "風暴華爾滋",
-      "スピリットサークル\t\t\t\t\t\t\t\t\t\t": "精靈法陣\t\t\t\t\t\t\t\t\t\t",
-      "ドリルミサイル": "鑽頭飛彈",
-      "バーニングロンド": "烈焰迴旋曲",
-      "ヒールエール": "治癒聲援",
-      "フロストスパイク": "冰霜尖刺",
-      "ライトニングアロー": "雷電箭",
-      "一目千両桜": "一目千兩櫻",
-      "妖鬼炎殺撃": "妖鬼炎殺擊",
-      "胡蝶の時雨": "蝶之時雨"
-    }
+    "skill_name": {}
   },
   "m_missions": {
     "_unmatched": {
