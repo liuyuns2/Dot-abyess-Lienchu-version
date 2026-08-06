@@ -1,2 +1,7 @@
 translations/
 translations_Hant_only/
+# TEST 版翻譯（本機測試用，不進版控）
+dotabyss-translation-client-version-TEST/
+
+# 打包產物
+*.zip
