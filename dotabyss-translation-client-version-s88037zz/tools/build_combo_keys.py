@@ -20,8 +20,15 @@ AbyssMod 有些畫面不是整句查字典，而是**先翻片段、組成完整
 
 ## 用法
 
-    python3 tools/build_combo_keys.py            # 補齊缺的並更新 manifest
-    python3 tools/build_combo_keys.py --check    # 只檢查不寫檔（有缺口時 exit 1，可用於 CI）
+    python3 tools/build_combo_keys.py --master <masterdata目錄>   # 補齊缺的並更新 manifest
+    python3 tools/build_combo_keys.py --master <masterdata目錄> --check   # 只檢查不寫檔
+
+masterdata 目錄指到「含 data/ 的那層」或「data/ 本身」都可以，工具會自己判斷
+（tools/extract_masterdata_missing.py 的 --master 要求前者，兩邊給一樣的值即可）。
+也可改設環境變數 DOTABYSS_MASTERDATA，優先序為 --master > 環境變數 > 預設值。
+
+--check 有缺口時 exit 1，可用於 CI。找不到 masterdata 時同樣 exit 1，
+避免產出「看起來成功、實際少了整族 key」的結果。
 
 ## 要新增一種模板時
 
@@ -32,8 +39,8 @@ source 指向「提供填充物的譯名表」。
 
 - `static`：譯名表本身就是來源（如劇情標題，日文 -> 中文，取中文側）。
 - `masterdata`：**維持原文**的名字（能力名等）不在譯名表裡，得從 masterdata 撈
-  日文原名當填充物。masterdata 路徑見 MASTERDATA_DIR，不在 repo 內，
-  故該族規則在找不到 masterdata 時會自動略過（只警告、不中斷）。
+  日文原名當填充物。masterdata 不在 repo 內，路徑由 --master 指定。
+  找不到時該族會被略過，但**整支工具會 exit 1**，不會假裝成功。
 
 ## ⚠️ 能力名這族為什麼填日文
 
@@ -48,8 +55,7 @@ source 指向「提供填充物的譯名表」。
 skill-names-keep-original。
 """
 
-# TODO:把MASTERDATA路徑改為參數
-
+import glob
 import hashlib
 import json
 import os
@@ -63,10 +69,29 @@ STATIC_PATH = os.path.join(ROOT, "static", LANG + ".json")
 UI_PATH = os.path.join(ROOT, "ui_texts", LANG + ".json")
 MANIFEST_PATH = os.path.join(ROOT, "manifest", LANG + ".json")
 
-# masterdata 不在 repo 內（使用者本機另外抓的官方資料）
-MASTERDATA_DIR = os.environ.get(
-    "DOTABYSS_MASTERDATA", r"D:\dotabyss-translation\Masterdata-main\data"
-)
+# masterdata 不在 repo 內（使用者本機另外抓的官方資料）。
+# 優先序：--master 參數 > DOTABYSS_MASTERDATA 環境變數 > 下面的預設值。
+DEFAULT_MASTERDATA = r"D:\dotabyss-translation\Masterdata-main\data"
+MASTERDATA_DIR = ""  # 由 resolve_masterdata() 在 main() 裡填入
+
+# 記錄因為找不到 masterdata 而被略過的規則；有值就 exit 1（見 main）
+MASTERDATA_SKIPPED = []
+
+
+def resolve_masterdata(raw):
+    """把使用者給的路徑正規化成「真正放 m_*.json 的那一層」。
+
+    tools/extract_masterdata_missing.py 的 --master 要指到「含 data/ 的上一層」，
+    而本工具的 DOTABYSS_MASTERDATA 歷來是直接指到 data/。兩支工具約定相反，
+    指錯又都不會中止（前者給空報告，後者略過整族），是實際踩過的坑。
+
+    這裡兩種寫法都接受：若 <raw>/data 底下有 m_*.json 就用它，否則用 <raw> 本身。
+    """
+    raw = os.path.abspath(os.path.expanduser(raw))
+    nested = os.path.join(raw, "data")
+    if glob.glob(os.path.join(nested, "m_*.json")):
+        return nested
+    return raw
 
 # 各檔案的縮排（沿用現況，避免整檔 diff）
 INDENT = {STATIC_PATH: 2, UI_PATH: 4}
@@ -215,9 +240,10 @@ def get_fillers(rule, static):
         _, filename, field = rule["source"]
         path = os.path.join(MASTERDATA_DIR, filename)
         if not os.path.isfile(path):
+            MASTERDATA_SKIPPED.append(rule["name"])
             print(
                 f"  [warn] 找不到 masterdata {path}，略過「{rule['name']}」"
-                f"（可用環境變數 DOTABYSS_MASTERDATA 指定目錄）",
+                f"（用 --master <masterdata目錄> 指定，或設 DOTABYSS_MASTERDATA）",
                 file=sys.stderr,
             )
             return None
@@ -339,8 +365,30 @@ def build_disaster(ui: dict, static: dict, check_only: bool) -> int:
     return len(missing)
 
 
+def parse_master_arg(argv):
+    """從 argv 取出 --master 的值（支援 --master X 與 --master=X）。"""
+    for i, arg in enumerate(argv):
+        if arg == "--master":
+            if i + 1 >= len(argv):
+                print("--master 後面要接目錄", file=sys.stderr)
+                raise SystemExit(2)
+            return argv[i + 1]
+        if arg.startswith("--master="):
+            return arg.split("=", 1)[1]
+    return None
+
+
 def main():
+    global MASTERDATA_DIR
+
     check_only = "--check" in sys.argv
+    raw_master = (
+        parse_master_arg(sys.argv[1:])
+        or os.environ.get("DOTABYSS_MASTERDATA")
+        or DEFAULT_MASTERDATA
+    )
+    MASTERDATA_DIR = resolve_masterdata(raw_master)
+    print(f"masterdata: {MASTERDATA_DIR}")
 
     static = load(STATIC_PATH)
     ui = load(UI_PATH)
@@ -446,5 +494,25 @@ def main():
     return 0
 
 
+def cli():
+    """跑完 main()，再把「找不到 masterdata」升級成非零退出。
+
+    舊版遇到 masterdata 路徑錯只印一行 warn 就略過該族，然後照常 exit 0——
+    使用者會拿到一份「看起來成功、實際少了整族 key」的結果，而且完全沒有
+    訊號。這種靜默的不完整比直接失敗危險得多，故改為明確失敗。
+    """
+    rc = main()
+    if MASTERDATA_SKIPPED:
+        print(
+            f"\n找不到 masterdata，已略過 {len(MASTERDATA_SKIPPED)} 族："
+            f"{'、'.join(MASTERDATA_SKIPPED)}\n"
+            f"目前使用的目錄：{MASTERDATA_DIR}\n"
+            f"請用 --master <masterdata目錄> 指定（指到含 data/ 的那層或 data/ 本身都可以）。",
+            file=sys.stderr,
+        )
+        return rc or 1
+    return rc
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(cli())

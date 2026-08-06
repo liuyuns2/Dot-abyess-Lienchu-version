@@ -243,27 +243,25 @@ python tools/build_novels_all.py
 ### 補完 masterdata → 生成組合 key
 
 ```bash
-# 指到你這次用的 masterdata
-DOTABYSS_MASTERDATA="D:/.../Masterdata-mainXXXX/30/data" python tools/build_combo_keys.py
+# 指到你這次用的 masterdata（跟第 1 節的 --master 給一樣的值即可）
+python tools/build_combo_keys.py --master "D:/.../Masterdata-mainXXXX/30"
 
 # 只檢查不寫檔（有缺口 exit 1，可掛 CI）
-python tools/build_combo_keys.py --check
+python tools/build_combo_keys.py --master "D:/.../Masterdata-mainXXXX/30" --check
 ```
 
-> ⚠️ **兩支工具的 masterdata 路徑約定相反，很容易搞錯：**
+`--master` 指到「含 `data/` 的那層」或「`data/` 本身」都可以，兩支工具都會
+自動判斷。也可改設環境變數 `DOTABYSS_MASTERDATA`，優先序為
+`--master` > 環境變數 > 程式內預設值。
+
+> **這裡曾經是個坑**（2026-08-06 修掉）：兩支工具的路徑約定原本相反
+> ——`extract_masterdata_missing.py` 要「不含 `data`」，`build_combo_keys.py`
+> 要「含 `data`」——而且指錯都不會中止：前者掃出 0 筆給你一份「沒有缺漏」的
+> 空報告，後者只在 stderr 印一行 warn 就略過該族並 exit 0，產出看起來成功
+> 但少了整族 key 的結果。
 >
-> | 工具 | 路徑要不要含 `data` |
-> |---|---|
-> | `extract_masterdata_missing.py --master` | **不含**（`.../30`），程式內部自己接 |
-> | `build_combo_keys.py` 的 `DOTABYSS_MASTERDATA` | **要含**（`.../30/data`） |
->
-> 兩者指錯都**不會中止**：
->
-> - `extract_masterdata_missing.py` 掃出 0 筆，給你一份「沒有缺漏」的空報告
-> - `build_combo_keys.py` 只在 stderr 印一行 `[warn] 找不到 masterdata …，略過`，
->   然後跳過該族繼續跑完，exit 0——你會拿到一份**看起來成功但少了整族 key** 的結果
->
-> 所以跑完要看 stderr，別只看 exit code。
+> 現在兩支都容錯，且**找不到 masterdata 一律 exit 1**。若你在舊版 commit 上
+> 工作，仍要注意這個差異。
 
 這支工具管五族「組合式再查詢 key」——遊戲會先翻片段、組成整句、再查一次，所以字典必須預存完整組合句。詳見工具內註解。
 

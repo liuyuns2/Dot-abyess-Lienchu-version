@@ -56,6 +56,22 @@ def collect_coverage(root: Path) -> tuple[set[tuple[str, str, str]], set[tuple[s
     return exact, known_fields, global_keys, files
 
 
+def resolve_masterdata(raw: Path) -> Path:
+    """把 --master 正規化成「真正放 m_*.json 的那一層」。
+
+    本工具歷來要求指到「含 data/ 的上一層」，而 tools/build_combo_keys.py 的
+    masterdata 路徑歷來直接指到 data/。兩邊約定相反、指錯又都不會中止，
+    是實際踩過的坑：指錯這裡會掃出 0 筆，然後給你一份「沒有缺漏」的空報告。
+
+    改為兩種寫法都接受：若 <raw>/data 底下有 m_*.json 就用它，否則用 <raw> 本身。
+    """
+    raw = raw.expanduser().resolve()
+    nested = raw / "data"
+    if any(nested.glob("m_*.json")):
+        return nested
+    return raw
+
+
 def record_id(row: dict[str, Any], index: int) -> str:
     for key in ("id", "key", "code", "asset_id"):
         if key in row:
@@ -77,8 +93,13 @@ def main() -> None:
     args = parser.parse_args()
 
     current = args.current.resolve()
-    master_data = (args.master / "data").resolve()
+    master_data = resolve_masterdata(args.master)
     output = args.output.resolve()
+    if not any(master_data.glob("m_*.json")):
+        raise SystemExit(
+            f"找不到 masterdata 資料表：{master_data}\n"
+            f"--master 請指到 masterdata 目錄（含 data/ 的那層或 data/ 本身都可以）。"
+        )
     excluded_tables = DEFAULT_EXCLUDED_TABLES | set(args.exclude_table)
     exact, known_fields, global_keys, source_files = collect_coverage(current)
 
