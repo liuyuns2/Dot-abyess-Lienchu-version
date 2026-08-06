@@ -80,17 +80,75 @@ names/zh_Hant.json
 
 ## 1. 比對 masterdata，找出官方改了什麼
 
+### 1-1. 抓最新 masterdata
+
 ```bash
-# 用 Python 逐檔 md5 比對新舊兩份 masterdata
-# 輸出「內容有變的檔案清單」
+git clone https://github.com/DotAbyss/Masterdata
 ```
 
-檔案數量會告訴你更新規模：
+### 1-2. 跑缺漏比對
 
-- **10 檔以內** → 小改（多半只是數值/獎勵調整，可翻的很少）
-- **100 檔以上** → 大改（通常是新角色或新活動）
+```bash
+python tools/extract_masterdata_missing.py --current . --master "<Masterdata>/30" --output "<輸出夾>"
+```
 
-接著從有變動的檔案抽出「**含日文、且不在現有翻譯庫**」的字串。要掃的主要欄位：
+三個參數都是**資料夾**：
+
+| 參數 | 指向 |
+|---|---|
+| `--current` | 本資料夾（`static/`、`ui_texts/`、`names/`、`add-on/`、`other/` 的上一層），填 `.` 即可 |
+| `--master` | **含 `data/` 的上一層**，通常是 `<Masterdata>/30` |
+| `--output` | 輸出夾，不存在會自動建 |
+
+> ⚠️ `--master` 程式內部會自己接一層 `data`。指到 `.../30/data` 會變成找
+> `.../30/data/data`，掃出 0 筆卻**不報錯**，只給你一份空報告。
+
+它比對的是「**新 masterdata ⟷ 你現有的翻譯**」，**不是**新舊兩版 masterdata，
+所以不需要保留舊版。（留舊版是為了估規模、縮小檢查範圍，是加速手段不是必要步驟。）
+
+### 1-3. 產出三個檔
+
+| 檔案 | 動它嗎 |
+|---|---|
+| `比對報告.md` | ❌ **先讀這份**，看規模與各表分佈 |
+| `待翻譯.json` | ✅ **工作檔**，結構與 `static/zh_Hant.json` 完全一致，只填 value |
+| `待翻譯_來源明細.json` | ❌ 查證用：某句出現在哪個 record、屬「全新原文」還是「同文異欄位」 |
+
+「同文異欄位」表示這句在別的表翻過了，通常直接沿用即可——但仍列出來，因為
+同一句話在不同 UI 語境未必該用同一種譯法。
+
+### 1-4. 這支工具的兩個盲點
+
+**① 只掃「已知欄位」。** 若某個 `(表, 欄位)` 組合在現有翻譯裡從未出現過，
+整個欄位會被跳過。官方**新增一整張表**時它是沉默的——得先在 `static` 手動補
+一條該表該欄位的條目，它才會開始追蹤。
+
+**② 擋不掉欄位層級的禁翻。** 預設排除只有兩張**表**，而
+`m_gacha_group_movies/skill_name` 是**欄位**層級，每次都會列進待翻譯（約 15 筆）。
+翻下去就違反技能名維持原文的政策——**這件事交給 1-6 的合併工具擋，不要靠記憶**。
+
+### 1-5. 翻譯
+
+只翻 `待翻譯.json`，**日文 key 一個字元都不能動**。翻之前務必先做第 2 節的
+「grep 既有句式」。
+
+### 1-6. 合併回 static
+
+```bash
+python tools/merge_translated.py --input "<輸出夾>/待翻譯.json" --dry-run
+```
+
+先看報告，確認無誤再拿掉 `--dry-run` 實際寫入。它會：
+
+- 自動跳過禁翻欄位（含 `m_gacha_group_movies/skill_name`）
+- 遇到既有譯文不同時**跳過並列出對照**，不會默默覆蓋（要覆蓋加 `--allow-overwrite`）
+- 追加在原位置之後，不重排（`static/zh_Hant.json` 是插入序，重排會讓 diff 爆掉）
+- 標示三類可疑條目：譯文與原文相同、譯文殘留假名、標籤與原文不一致
+
+### 1-7. 人工複查時的重點欄位
+
+以上流程涵蓋自動化的部分。要人工複查、或處理 1-4 的盲點 ①（官方新增整張表）時，
+這些是最常有可翻內容的欄位：
 
 ```
 m_characters/name              角色名
@@ -148,11 +206,30 @@ m_gacha_group_movies/skill_name   ← 整表清空，不翻
 
 新版本冒出的能力名/技能名**一律不翻**。補完後要驗證這三表仍為空。
 
+走 1-6 的 `merge_translated.py` 會自動擋掉這三處（包含欄位層級的
+`m_gacha_group_movies/skill_name`），但**手動編輯 `static/zh_Hant.json` 時沒有
+任何保護**——曾經就這樣誤翻進 13 條技能名。
+
 二つ名（帶 `[LvN]` 的稱號）同樣維持原文，且**不可加進 ui_texts**——會害二つ名畫面顯示中文。
 
 ---
 
 ## 3. 跑工具
+
+### 順序（照這個跑，別跳）
+
+```
+1. extract_masterdata_missing.py   找出缺漏          ← 第 1 節
+2. （翻 待翻譯.json）                                 ← 第 2 節
+3. merge_translated.py             合併回 static     ← 第 1-6 節
+4. build_novels_all.py             重建分包          ← 劇情有變動才要
+5. build_combo_keys.py             生成組合 key
+6. update_manifest.py              更新 hash         ← 絕對不能漏
+7. 驗證與提交                                        ← 第 4 節
+```
+
+第 5 步和第 6 步最常被漏。漏第 5 步→組合式畫面顯示日文；漏第 6 步→**整包翻譯
+玩家都拿不到**，而且兩者都不會有錯誤訊息。
 
 ### 劇情有變動 → 重建分包
 
@@ -167,11 +244,26 @@ python tools/build_novels_all.py
 
 ```bash
 # 指到你這次用的 masterdata
-DOTABYSS_MASTERDATA="D:/.../Masterdata-mainXXXX/data" python tools/build_combo_keys.py
+DOTABYSS_MASTERDATA="D:/.../Masterdata-mainXXXX/30/data" python tools/build_combo_keys.py
 
 # 只檢查不寫檔（有缺口 exit 1，可掛 CI）
 python tools/build_combo_keys.py --check
 ```
+
+> ⚠️ **兩支工具的 masterdata 路徑約定相反，很容易搞錯：**
+>
+> | 工具 | 路徑要不要含 `data` |
+> |---|---|
+> | `extract_masterdata_missing.py --master` | **不含**（`.../30`），程式內部自己接 |
+> | `build_combo_keys.py` 的 `DOTABYSS_MASTERDATA` | **要含**（`.../30/data`） |
+>
+> 兩者指錯都**不會中止**：
+>
+> - `extract_masterdata_missing.py` 掃出 0 筆，給你一份「沒有缺漏」的空報告
+> - `build_combo_keys.py` 只在 stderr 印一行 `[warn] 找不到 masterdata …，略過`，
+>   然後跳過該族繼續跑完，exit 0——你會拿到一份**看起來成功但少了整族 key** 的結果
+>
+> 所以跑完要看 stderr，別只看 exit code。
 
 這支工具管五族「組合式再查詢 key」——遊戲會先翻片段、組成整句、再查一次，所以字典必須預存完整組合句。詳見工具內註解。
 
