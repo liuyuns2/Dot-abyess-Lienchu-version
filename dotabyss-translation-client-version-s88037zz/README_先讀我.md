@@ -93,10 +93,9 @@ LF 的設定。少了它 → md5 對不上 → **玩家永遠拿到舊翻譯**�
 
 對應 `It will be used to extract plot text/README.md`。
 
+1. 抓官方最新劇情文本（首次要先建 venv，見該資料夾 README）
 ```bash
-# 1. 抓官方最新劇情文本（首次要先建 venv，見該資料夾 README）
-cd "It will be used to extract plot text/tools"
-.\OfficialNovelUpdate.ps1
+& '.\It will be used to extract plot text\tools\OfficialNovelUpdate.ps1' -BaseDir "C:\"
 ```
 
 2. 翻 `<輸出根>\output\official_update_<日期>\pending_novels\`
@@ -112,11 +111,12 @@ cd "It will be used to extract plot text/tools"
 
    只搬你動過的資料夾，不要整包覆蓋。
 
+4. 重建分包（novels_*_all/ 是產物，遊戲讀這個）
 ```bash
-# 4. 重建分包（novels_*_all/ 是產物，遊戲讀這個）
 python tools/build_novels_all.py
-
-# 5. 更新 manifest
+```
+5. 更新 manifest
+```bash
 python tools/update_manifest.py
 ```
 
@@ -126,37 +126,44 @@ python tools/update_manifest.py
 
 對應 `HANDOVER.md` 第 1～3 節。
 
+1. 拿最新 masterdata（只要新的，不必留舊版）
 ```bash
-# 1. 拿最新 masterdata（只要新的，不必留舊版）
 git clone https://github.com/DotAbyss/Masterdata
+```
 
-# 2. 找出缺漏（比對的是「新 masterdata ⟷ 現有翻譯」，不是新舊兩版 masterdata）
-python tools/extract_masterdata_missing.py --current . --master "<Masterdata>/30" --output "<輸出夾>"
+2. 找出缺漏（比對的是「新 masterdata ⟷ 現有翻譯」，不是新舊兩版 masterdata）
+```bash
+python tools/extract_masterdata_missing.py --current . --master "<Masterdata>" --output "<輸出夾>"
 ```
 
 3. 先讀 `<輸出夾>\比對報告.md` 看規模，再翻 `待翻譯.json`。
    另一個 `待翻譯_來源明細.json` 是查證用的，不要翻。
    **翻之前先 grep 既有句式**（`HANDOVER.md` 第 2 節，最容易出錯的一步）。
 
+4. 合併回 static（先 --dry-run 看報告，確認無誤再拿掉重跑）
 ```bash
-# 4. 合併回 static（先 --dry-run 看報告，確認無誤再拿掉重跑）
 python tools/merge_translated.py --input "<輸出夾>/待翻譯.json" --dry-run
+```
 
-# 5. 生成組合式再查詢 key（漏了 → 那幾類畫面顯示日文）
-python tools/build_combo_keys.py --master "<Masterdata>/30"
+5. 生成組合式再查詢 key（漏了 → 那幾類畫面顯示日文）
+```bash
+python tools/build_combo_keys.py --master "<Masterdata>"
+```
 
-# 6. 更新 manifest
+6. 更新 manifest
+```bash
 python tools/update_manifest.py
 ```
 
 7. 驗證與提交 → 見下方「收尾」。
 
-> `--master` 指到「含 `data/` 的那層」或「`data/` 本身」都可以，兩支工具都會自動判斷。
+> `--master` 指到 clone 下來的 Masterdata repo 根（裡面有 `data/`）或 `data/` 本身都可以，兩支工具都會自動判斷。
+> 這個 repo **沒有版本號那層**——舊版文件寫的 `<Masterdata>/30` 是錯的。
 
 ### 收尾（兩條線共用，別跳過）
 
 ```
-□ python tools/build_combo_keys.py --master "<Masterdata>/30" --check   通過
+□ python tools/build_combo_keys.py --master "<Masterdata>" --check   通過
 □ 技能名三表仍為空（見 AGENTS.md）
 □ git add 之後，用 git show :<路徑> 取暫存區 blob 算 md5，比對 manifest
    —— 不能驗工作區檔案，Windows 的 CRLF 會讓 md5 對不上（HANDOVER 陷阱一）

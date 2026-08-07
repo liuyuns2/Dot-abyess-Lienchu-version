@@ -89,7 +89,7 @@ git clone https://github.com/DotAbyss/Masterdata
 ### 1-2. 跑缺漏比對
 
 ```bash
-python tools/extract_masterdata_missing.py --current . --master "<Masterdata>/30" --output "<輸出夾>"
+python tools/extract_masterdata_missing.py --current . --master "<Masterdata>" --output "<輸出夾>"
 ```
 
 三個參數都是**資料夾**：
@@ -97,11 +97,13 @@ python tools/extract_masterdata_missing.py --current . --master "<Masterdata>/30
 | 參數 | 指向 |
 |---|---|
 | `--current` | 本資料夾（`static/`、`ui_texts/`、`names/`、`add-on/`、`other/` 的上一層），填 `.` 即可 |
-| `--master` | **含 `data/` 的上一層**，通常是 `<Masterdata>/30` |
+| `--master` | clone 下來的 Masterdata repo 根（裡面有 `data/`）。指到 `data/` 本身也可以 |
 | `--output` | 輸出夾，不存在會自動建 |
 
-> ⚠️ `--master` 程式內部會自己接一層 `data`。指到 `.../30/data` 會變成找
-> `.../30/data/data`，掃出 0 筆卻**不報錯**，只給你一份空報告。
+> ℹ️ 這個 repo 的 `m_*.json` 就放在根目錄的 `data/` 底下，**沒有版本號那層**
+> （舊版文件寫的 `<Masterdata>/30` 是錯的，那層從來不存在）。
+> 兩支工具都會自己判斷「含 `data/` 的那層」或「`data/` 本身」，給哪個都行，
+> 找不到 masterdata 一律 exit 1。
 
 它比對的是「**新 masterdata ⟷ 你現有的翻譯**」，**不是**新舊兩版 masterdata，
 所以不需要保留舊版。（留舊版是為了估規模、縮小檢查範圍，是加速手段不是必要步驟。）
@@ -244,15 +246,16 @@ python tools/build_novels_all.py
 
 ```bash
 # 指到你這次用的 masterdata（跟第 1 節的 --master 給一樣的值即可）
-python tools/build_combo_keys.py --master "D:/.../Masterdata-mainXXXX/30"
+python tools/build_combo_keys.py --master "<Masterdata>"
 
 # 只檢查不寫檔（有缺口 exit 1，可掛 CI）
-python tools/build_combo_keys.py --master "D:/.../Masterdata-mainXXXX/30" --check
+python tools/build_combo_keys.py --master "<Masterdata>" --check
 ```
 
 `--master` 指到「含 `data/` 的那層」或「`data/` 本身」都可以，兩支工具都會
 自動判斷。也可改設環境變數 `DOTABYSS_MASTERDATA`，優先序為
-`--master` > 環境變數 > 程式內預設值。
+`--master` > 環境變數 > 程式內預設值（預設值只是後備，換一台電腦必定失效，
+請一律明確給 `--master`）。
 
 > **這裡曾經是個坑**（2026-08-06 修掉）：兩支工具的路徑約定原本相反
 > ——`extract_masterdata_missing.py` 要「不含 `data`」，`build_combo_keys.py`
