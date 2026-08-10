@@ -12,6 +12,8 @@ Required flow:
 4. Validate JSON.
 5. Review `git status` and stage only intended files.
 6. Commit and push.
+7. **After pushing**, verify what players actually download:
+   `python tools\verify_cdn.py --purge`
 
 Hash ownership:
 
@@ -20,6 +22,15 @@ Hash ownership:
 - After any manifest content changes, update `manifest/zh_Hant.json` field `hash`.
 
 Never assume CDN or local game cache will refresh correctly unless manifest hashes match the current file contents.
+
+Correct manifest hashes are necessary but **not sufficient**. Requests are rerouted from
+`raw.githubusercontent.com` to `cdn.jsdelivr.net` by `AbyssCdnRouter.dll`, and jsDelivr caches
+branch refs for up to 12 hours, so a pushed change can still reach players as a several-commit-old
+file. `names`/`ui_texts`/`add-on`/`other` at least fail loudly (runtime md5 check → stale-cache
+fallback logged as `Remote fetch failed`); `static` has **no** runtime integrity check, so a stale
+static bundle is injected silently and the screen is Japanese with no error anywhere. Always run
+`python tools\verify_cdn.py --purge` after pushing, and see HANDOVER.md trap 7 for the
+commit-SHA pin when a purge cannot clear it.
 
 ## Permanent translation exclusions and emblem colors
 

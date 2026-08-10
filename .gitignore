@@ -5,3 +5,6 @@ dotabyss-translation-client-version-TEST/
 
 # 打包產物
 *.zip
+
+# 工具產生的暫時 worktree／本機設定
+.claude/

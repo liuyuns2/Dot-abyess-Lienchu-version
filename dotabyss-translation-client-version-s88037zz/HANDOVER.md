@@ -244,10 +244,14 @@ m_gacha_group_movies/skill_name   ← 這一欄清空，不翻
 5. build_combo_keys.py             生成組合 key
 6. update_manifest.py              更新 hash         ← 絕對不能漏
 7. 驗證與提交                                        ← 第 4 節
+8. verify_cdn.py --purge           驗 CDN            ← push 之後，第 4 節
 ```
 
-第 5 步和第 6 步最常被漏。漏第 5 步→組合式畫面顯示日文；漏第 6 步→**整包翻譯
-玩家都拿不到**，而且兩者都不會有錯誤訊息。
+第 5、6、8 步最常被漏，而且**三個都不會有錯誤訊息**：
+
+- 漏第 5 步 → 組合式畫面顯示日文
+- 漏第 6 步 → 整包翻譯玩家都拿不到
+- 漏第 8 步 → 你以為推上去了，玩家還在拿幾個 commit 前的檔案（見陷阱七）
 
 ### 劇情有變動 → 重建分包
 
@@ -294,6 +298,16 @@ python tools/update_manifest.py
 
 > **hash 對不上 = 玩家永遠拿到舊版**，因為 mod 靠 hash 判斷要不要重抓。
 
+### push 之後：驗 CDN（**也絕對不能漏**）
+
+```bash
+python tools/verify_cdn.py --purge
+```
+
+`update_manifest.py` 只保證 **repo 內部**一致；玩家拿到的是 **jsDelivr**，
+它對分支 ref 有最長 12 小時的快取。manifest 全綠、`git push` 成功，玩家照樣可能
+拿到幾個 commit 前的檔案。詳見陷阱七。
+
 ---
 
 ## 4. 驗證與提交
@@ -310,11 +324,18 @@ python tools/update_manifest.py
 □ git status 只有預期的檔案
 ```
 
+**push 之後**再確認這兩項（前七項全過也不代表玩家拿得到）：
+
+```
+□ python tools/verify_cdn.py --purge 通過
+□ 實機重開一次，看 BepInEx/LogOutput.log 沒有 Remote fetch failed
+```
+
 ⚠️ **不要用 `git add -A`**——上層有未追蹤的 `.zip` 和 TEST 資料夾。逐檔 `git add`。
 
 ---
 
-## 5. 踩過的坑（按嚴重度排序）
+## 5. 踩過的坑（大致按嚴重度排序；編號是歷史標籤，不是順位）
 
 ### 陷阱一：CRLF 讓 manifest hash 全錯 🩸
 
@@ -329,6 +350,56 @@ md5 = hashlib.md5(open(p,'rb').read().replace(b'\r\n', b'\n')).hexdigest()
 # 驗證要用 blob，不是工作區檔
 git show :path/to/file.json | md5
 ```
+
+### 陷阱七：jsDelivr 餵舊檔，而 static 沒有驗證所以完全無聲 🩸
+
+**repo 全綠 ≠ 玩家拿到。** 中間還有一層 CDN：
+
+```
+AbyssMod.cfg 的 CDN 設 raw.githubusercontent.com
+  → AbyssCdnRouter.dll 把網址改寫成 cdn.jsdelivr.net/gh/...
+    → jsDelivr 對「分支 ref」有快取（s-maxage=43200，最長 12 小時）
+```
+
+所以 `git push` 完、`update_manifest.py` 全對，玩家還是可能拿到**幾個 commit 前**的檔案。
+兩種後果嚴重度差很多：
+
+| 檔案 | 執行期有無 md5 驗證 | 陳舊時的下場 |
+|---|---|---|
+| `names`/`ui_texts`/`add-on`/`other` | **有** | 驗證失敗→退回本機舊快取，log 有 `Remote fetch failed` |
+| `static` | **沒有** | **靜默**注入舊 bundle，log 只印 `Injected N m_* tables` |
+
+`static` 那條是真正的殺手：畫面一片日文，卻沒有任何錯誤訊息。
+
+> 🩸 **2026-08-10 實際事故。** 18:43 推上【水着】ホノカ 的角色名與技能說明，
+> 19:09 實機還是日文。**庫裡兩筆譯文都在**（`m_characters/name`、
+> `m_character_action_skills/description`），manifest 也對——是 jsDelivr 在餵舊檔：
+>
+> - `names` 給 609 條（新版 611）→ md5 對不上 → 退回舊快取 → **角色名沒翻**
+> - `static` 給 128 表版本（新版 131），`description` 只有 124 條 →
+>   缺巻貝百華那幾條 → **技能說明沒翻**
+>
+> 判讀方法（不用猜，log 會自己說）：
+>
+> - `Remote fetch failed for zh_Hant/names` + `Loaded stale cache` → 該檔陳舊
+> - `Translation loaded [names]. Total: 609` → 條數比 repo 少就是舊的
+> - `Injected 127 m_* tables` → 拿這個數字去比對 static 各 commit 的**非空表數**，
+>   就能反推玩家實際拿到哪一版（當時現行版是 130）
+> - `dump/*_raw.json` 同步記下查不到的原句，是最直接的證據
+
+**處理順序**：
+
+1. `python tools/verify_cdn.py --purge` —— 驗 raw 與 jsDelivr，順手清快取。
+2. 清完還是舊的 → 那是 jsDelivr 自己那層「分支→commit」解析快取，**purge 清不到**
+   （實測回 `finished`、`x-cache: MISS`，內容照樣舊）。最長 12 小時自己過期。
+3. 要立刻生效 → 把 `AbyssMod.cfg` 的 CDN **釘在 commit SHA**，SHA 網址不吃分支快取。
+   工具會直接印出可貼的網址。⚠️ 臨時手段，下次改版必須改回分支形式，
+   忘記改回去就會**永遠**停在那個 commit（而且一樣沒有錯誤訊息）。
+
+⚠️ **CDN 還沒追上時，不要為了補救再推一版資料。** manifest 一改，玩家可能拿到
+「新 manifest ＋ 舊資料檔」或反過來「舊 manifest ＋ 新資料檔」——後者更糟：
+mod 會拿舊 hash 去驗新檔案，於是**每個檔都驗證失敗**，全部退回舊快取。
+先等 CDN 一致，再推下一版。
 
 ### 陷阱二：key 差一個字元，永遠命不中
 
@@ -390,14 +461,29 @@ masterdata 有的資料放 `static` 是對的，但**同一個名稱若也會被
 
 ## 6. 玩家回報「某處沒翻」的排查順序
 
+**第 0 步永遠是：拿原文去庫裡搜一遍。** 這一步決定接下來走哪條路，兩條路完全不同：
+
+- **庫裡沒有** → 是漏翻，往下走第 1～3 步（補字典）
+- **庫裡有卻顯示日文** → 是**沒生效**，跳到第 4 步（查投遞管線）。
+  這時候再怎麼看譯文都沒用，字是對的。
+
 1. **查 dump** —— 有的話用它的精確位元組當 key（最可靠）
 2. **dump 沒有 → 查 masterdata** —— 找出它屬於哪張表哪個欄位
 3. **兩處都查無 → 是客戶端寫死的 UI 字串** —— 照截圖逐字轉錄，補進 `ui_texts`，請玩家實機確認
-4. **庫裡明明有譯文卻顯示日文** → 依序懷疑：
+4. **庫裡明明有譯文卻顯示日文** → 別憑猜，**先讀實機的兩個檔**，它們會直接說出答案：
+
+   | 檔案 | 看什麼 |
+   |---|---|
+   | `BepInEx/LogOutput.log` | `Remote fetch failed` / `Loaded stale cache` / `Translation loaded [X]. Total: N`（條數比 repo 少＝拿到舊檔）/ `Injected N m_* tables` |
+   | `BepInEx/plugins/AbyssMod/dump/*_raw.json` | 遊戲實際查了哪個字串卻查不到（含**組合後**與**數值代入後**的形式） |
+
+   再依序懷疑：
+
+   - CDN 餵舊檔（陷阱七）—— `python tools/verify_cdn.py --purge` 一次驗完，**最常見**
    - key 差字元（陷阱二）
    - 只寫了 static（陷阱三）
    - manifest hash 沒更新（陷阱一）
-   - CDN/本地快取還沒更新
+   - 本地快取還沒更新（重開遊戲；mod 每次啟動都會重新比 hash）
 
 ---
 
