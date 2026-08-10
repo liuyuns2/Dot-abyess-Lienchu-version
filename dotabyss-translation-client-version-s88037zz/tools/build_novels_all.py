@@ -54,7 +54,7 @@ def collect_by_prefix() -> dict[str, dict[str, dict]]:
                 continue  # 跳過 .git / .agents 等隱藏目錄
             novel_path = os.path.join(src_dir, novel_id)
             if not os.path.isdir(novel_path):
-                continue  # 跳過 translation_rules.md 之類的雜項檔
+                continue  # 跳過雜項檔（來源夾裡只有 <prefix>_<id> 目錄算劇本）
             if "_" not in novel_id:
                 print(f"  [warn] 略過無前綴的 id：{novel_id}", file=sys.stderr)
                 continue

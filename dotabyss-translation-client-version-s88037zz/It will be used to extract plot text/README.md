@@ -10,8 +10,9 @@
 
 | 項目 | 說明 |
 |---|---|
-| `官方更新交接手冊.md` | **完整操作手冊**，先讀這份 |
-| `tools/OfficialNovelUpdate.ps1` | 一鍵入口，依序跑完 9 個步驟 |
+| **本檔** | 環境安裝、一鍵指令、參數覆寫、產出導覽 —— **先讀這份** |
+| `官方更新交接手冊.md` | 接在本檔後面：每一步在做什麼、產出結構、驗證指令、常見錯誤、交付檢查表 |
+| `tools/OfficialNovelUpdate.ps1` | 一鍵入口，依序跑完所有階段 |
 | `tools/*.py` | 各階段工具（抓 catalog、下載、解包、套翻譯記憶、驗證…） |
 
 ## 快速開始
@@ -22,6 +23,8 @@
 Set-Location "<這個資料夾>\tools"
 py -3.12 -m venv .venv
 & ".\.venv\Scripts\python.exe" -m pip install requests msgpack pycryptodome rich UnityPy
+# 驗證裝好了（少任何一個之後會在中途才炸）
+& ".\.venv\Scripts\python.exe" -c "import requests,msgpack,Crypto,rich,UnityPy; print('Python dependencies OK')"
 ```
 
 之後每次官方更新只要：
@@ -84,7 +87,8 @@ Set-Location "<這個資料夾>\tools"
 | `empty_translations\*.html` | 空值報告，可視化 |
 | `l2d_changes.txt` | 相對上一版新增／移除的 L2D |
 
-翻完 → 驗證（手冊第 6 節）→ 同步回 repo → **再回上層 `HANDOVER.md` 第 3 節重建分包＋更新 manifest**。
+翻完 → 驗證（手冊第 5 節）→ 同步回 repo（手冊第 6 節）→
+**再回上層 `HANDOVER.md` 第 3 節重建分包＋更新 manifest，push 後跑 `verify_cdn.py`**。
 
-> 這最後一步最容易漏：本工具鏈**不會動 manifest**，
+> 這最後一步最容易漏：本工具鏈**不會動 manifest、也不驗 CDN**，
 > 漏了的話劇情進了 repo，玩家還是拿不到。

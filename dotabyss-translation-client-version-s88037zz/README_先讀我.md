@@ -48,12 +48,15 @@ LF 的設定。少了它 → md5 對不上 → **玩家永遠拿到舊翻譯**�
 
 ### 文件導覽（依閱讀順序）
 
-| 順序 | 文件 | 內容 |
+每份文件各自負責一塊，**同一件事只寫在一個地方**，其他地方只放指路：
+
+| 順序 | 文件 | 只有這裡有 |
 |---|---|---|
-| 1 | **`HANDOVER.md`** | **官方更新的完整流程 + 六個踩過的坑**，最重要 |
-| 2 | `translation_rules.md` | 譯文風格：台灣用語、角色語氣、標點 |
-| 3 | `AGENTS.md` | 技術鐵律：manifest hash、禁翻表、紋章色標 |
-| 4 | `It will be used to extract plot text/README.md` | 劇情文本抓取工具鏈 |
+| 1 | **`HANDOVER.md`** | **UI／系統文字（B 產線）的完整流程 ＋ 七個踩過的坑**，最重要 |
+| 2 | `translation_rules.md` | 譯文風格與遊戲術語對照：台灣用語、標點、角色語氣、禁翻欄位 |
+| 3 | `AGENTS.md` | 技術鐵律：manifest hash、CDN 驗證、禁翻欄位、紋章色標 |
+| 4 | `It will be used to extract plot text/README.md` | 劇情（A 產線）環境安裝與一鍵指令 |
+| 5 | `It will be used to extract plot text/官方更新交接手冊.md` | A 產線的原理、產出結構、驗證與常見錯誤 |
 
 ### 一句話理解這個專案
 
@@ -84,92 +87,48 @@ LF 的設定。少了它 → md5 對不上 → **玩家永遠拿到舊翻譯**�
 
 ---
 
-## 流程速查
+## 指令速查
 
-> 這是速查表。**每一步的細節、判準與踩過的坑都在 `HANDOVER.md`**，
-> 第一次做請照那份走完一遍。以下指令都在本資料夾內執行。
+⚠️ **這裡只列指令順序。每一步的參數、判準與踩過的坑一律看 `HANDOVER.md`**——
+細節寫兩份一定會漂移，之後照著舊那份做就出事。第一次做請整份走完一遍。
 
-### A. 劇情（novels）
+以下都在本資料夾內執行。
 
-對應 `It will be used to extract plot text/README.md`。
+### A. 劇情（novels）—— 細節見 `It will be used to extract plot text/`
 
-1. 抓官方最新劇情文本（首次要先建 venv，見該資料夾 README）
 ```bash
-& '.\It will be used to extract plot text\tools\OfficialNovelUpdate.ps1' -BaseDir "C:\"
+# 1. 抓官方最新劇情（首次要先建 venv，見該資料夾 README）
+& '.\It will be used to extract plot text\tools\OfficialNovelUpdate.ps1'
+# 2. 翻 <輸出根>\output\official_update_<日期>\pending_novels\
+# 3. 翻好的資料夾放回 novels/（已上線）或 novels_untranslated_only/（未上線）
+python tools/build_novels_all.py      # 4. 重建分包（遊戲讀分包，不讀逐檔）
+python tools/update_manifest.py       # 5. 更新 hash
 ```
 
-2. 翻 `<輸出根>\output\official_update_<日期>\pending_novels\`
-   —— 只填空 value，**日文 key 一個字元都不能動**。
-   `new_folders_only\` 是這次全新的劇情。
+### B. UI／系統文字（masterdata）—— 細節見 `HANDOVER.md` 第 1～3 節
 
-3. 把翻好的資料夾放回來源，**依是否已上線分流**：
-
-   | 目的地 | 什麼情況 |
-   |---|---|
-   | `novels/` | 已上線 |
-   | `novels_untranslated_only/` | 尚未上線（`new_folders_only` 多半屬此） |
-
-   只搬你動過的資料夾，不要整包覆蓋。
-
-4. 重建分包（novels_*_all/ 是產物，遊戲讀這個）
 ```bash
-python tools/build_novels_all.py
-```
-5. 更新 manifest
-```bash
-python tools/update_manifest.py
-```
-
-6. 驗證與提交 → 見下方「收尾」。
-
-### B. Masterdata（劇情以外）
-
-對應 `HANDOVER.md` 第 1～3 節。
-
-1. 拿最新 masterdata（只要新的，不必留舊版）
-```bash
-git clone https://github.com/DotAbyss/Masterdata
-```
-
-2. 找出缺漏（比對的是「新 masterdata ⟷ 現有翻譯」，不是新舊兩版 masterdata）
-```bash
+git clone https://github.com/DotAbyss/Masterdata                                    # 1. 拿最新 masterdata
 python tools/extract_masterdata_missing.py --current . --master "<Masterdata>" --output "<輸出夾>"
+# 2. 先讀 <輸出夾>\比對報告.md 看規模，再翻 待翻譯.json（翻之前先 grep 既有句式）
+python tools/merge_translated.py --input "<輸出夾>/待翻譯.json" --dry-run           # 3. 看報告，OK 再拿掉 --dry-run
+python tools/build_combo_keys.py --master "<Masterdata>"                             # 4. 組合 key
+python tools/update_manifest.py                                                      # 5. 更新 hash
 ```
-
-3. 先讀 `<輸出夾>\比對報告.md` 看規模，再翻 `待翻譯.json`。
-   另一個 `待翻譯_來源明細.json` 是查證用的，不要翻。
-   **翻之前先 grep 既有句式**（`HANDOVER.md` 第 2 節，最容易出錯的一步）。
-
-4. 合併回 static（先 --dry-run 看報告，確認無誤再拿掉重跑）
-```bash
-python tools/merge_translated.py --input "<輸出夾>/待翻譯.json" --dry-run
-```
-
-5. 生成組合式再查詢 key（漏了 → 那幾類畫面顯示日文）
-```bash
-python tools/build_combo_keys.py --master "<Masterdata>"
-```
-
-6. 更新 manifest
-```bash
-python tools/update_manifest.py
-```
-
-7. 驗證與提交 → 見下方「收尾」。
-
-> `--master` 指到 clone 下來的 Masterdata repo 根（裡面有 `data/`）或 `data/` 本身都可以，兩支工具都會自動判斷。
-> 這個 repo **沒有版本號那層**——舊版文件寫的 `<Masterdata>/30` 是錯的。
 
 ### 收尾（兩條線共用，別跳過）
 
 ```
 □ python tools/build_combo_keys.py --master "<Masterdata>" --check   通過
-□ 技能名三表仍為空（見 AGENTS.md）
+□ 禁翻的三個欄位仍為空（見 AGENTS.md）
 □ git add 之後，用 git show :<路徑> 取暫存區 blob 算 md5，比對 manifest
    —— 不能驗工作區檔案，Windows 的 CRLF 會讓 md5 對不上（HANDOVER 陷阱一）
+□ commit + push（逐檔 git add，本 repo 禁用 git add -A）
+□ python tools/verify_cdn.py --purge   通過   ← push 之後
 □ 實機進遊戲確認
-□ commit + push
 ```
 
-> **`update_manifest.py` 是最不能漏的一步。** hash 對不上時 mod 不會重抓，
-> 玩家永遠拿到舊翻譯，而且沒有任何錯誤訊息。
+> **最後兩件事最不能漏，而且都沒有錯誤訊息**：
+> `update_manifest.py` 漏了 → hash 對不上 → mod 不重抓 → 玩家永遠拿到舊翻譯；
+> `verify_cdn.py` 漏了 → CDN 還在餵舊檔 → 你以為推上去了，玩家還是日文
+> （`HANDOVER.md` 陷阱一、陷阱七）。
