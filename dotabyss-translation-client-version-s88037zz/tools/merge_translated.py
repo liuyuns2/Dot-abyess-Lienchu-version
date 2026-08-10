@@ -5,9 +5,10 @@
 `static/zh_Hant.json` 完全一致（`{資料表: {欄位: {原文: 譯文}}}`），所以合併
 就是一次深層 merge。但有三件事不能交給人記：
 
-1. **禁翻欄位**：技能名／能力名維持原文是既定政策。
-   `extract_masterdata_missing.py` 只支援資料表層級排除，擋不掉
-   `m_gacha_group_movies/skill_name` 這種欄位層級的，每次都會列進待翻譯。
+1. **禁翻欄位**：技能名／能力名維持原文是既定政策。禁的是
+   `m_character_abilities/name`、`m_character_action_skills/name`、
+   `m_gacha_group_movies/skill_name` 三個**欄位**——同表的 `description`
+   是要翻的，別連表一起擋掉。
 2. **不覆蓋既有譯文**：同一個 `表+欄位+原文` 已經有譯文時一律跳過並回報，
    避免一次批次合併默默改掉先前校對過的句子。要覆蓋得明確加 --allow-overwrite。
 3. **不重排**：`static/zh_Hant.json` 的表名／欄位／原文都是插入序而非字典序，
@@ -30,14 +31,14 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TARGET = ROOT / "static" / "zh_Hant.json"
 
-# 整張表禁翻（與 AGENTS.md 一致）
-FORBIDDEN_TABLES = {
-    "m_character_abilities",
-    "m_character_action_skills",
-}
+FORBIDDEN_TABLES: set[str] = set()
 
-# 單一欄位禁翻：extract_masterdata_missing.py 擋不掉這層，只能在這裡攔
+# 禁翻的是「欄位」不是「整張表」（與 AGENTS.md 一致）。
+# 曾經整張表禁掉 m_character_abilities / m_character_action_skills，結果連
+# description 一起擋住——主動技能說明從此進不了 static，新角色上線就是一片日文。
 FORBIDDEN_FIELDS = {
+    ("m_character_abilities", "name"),
+    ("m_character_action_skills", "name"),
     ("m_gacha_group_movies", "skill_name"),
 }
 
