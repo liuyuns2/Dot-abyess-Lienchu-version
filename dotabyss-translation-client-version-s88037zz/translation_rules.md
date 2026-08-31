@@ -40,6 +40,7 @@ m_gacha_group_movies/skill_name
 - 腳本產生任何 dry-run 或 write 建議前，必須先套用 `names/zh_Hant.json` 的正式譯名。
 - `<user>` 必須保留為 `<user>`，不得翻譯。
 - 改譯名時要連改組合 key，並注意不要無條件全域替換（`HANDOVER.md` 陷阱四、五）。
+- **表內沒有、全庫（`static`／`novels*`／劇情產線的 `pending_novels`）也搜不到的全新譯名，先問使用者再翻**，不要自己定。唯一來源是工作區根目錄的 `CLAUDE.md`（Invariants that fail silently），這裡只是抄過來方便查。
 
 ## 台灣在地化語感與用詞
 
