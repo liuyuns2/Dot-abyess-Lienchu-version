@@ -1,5 +1,5 @@
 {
-  "names": "3cac3ba37e095b7e655f2e8a82bcddd1",
+  "names": "70c014c27376fdcbbcb2cd54867a8c9f",
   "ui_texts": "a81454218d38d1b998a6e190d54608f6",
   "static": "b8316ef476e649270830612826236a5c",
   "add_on": {
@@ -18,10 +18,10 @@
     "system": "99914b932bd37a50b983c5e7c90ae93b",
     "ui_misc": "99914b932bd37a50b983c5e7c90ae93b"
   },
-  "novels_evs_all": "70822d77c4341f9f11843fc57b686b7f",
-  "novels_hmn_all": "5dc3fe6afa6bbd892070fa367083a570",
-  "novels_hmr_all": "f8ef0e39793614e1077fa87ccc92a9b2",
-  "novels_mas_all": "841f494e9c620a30dd3b3a92807a354a",
-  "novels_men_all": "5eae722414436c01e8336f6836d53448",
-  "hash": "882a837b42c1d6e99c675342bda52d67"
+  "novels_evs_all": "1a4b7eeaa77b1c7c35a0c62570277d32",
+  "novels_hmn_all": "8f84e81d8cda974aca632ead1f5e9bd7",
+  "novels_hmr_all": "36c8d8480171042e66136142822e8407",
+  "novels_mas_all": "c4b45602f2e805b56805e0a4bc2e39ef",
+  "novels_men_all": "5e9cddb51c9cb429bb6163b1af1a1912",
+  "hash": "f5c6f802fc25a47d9d4ba764391a4118"
 }
