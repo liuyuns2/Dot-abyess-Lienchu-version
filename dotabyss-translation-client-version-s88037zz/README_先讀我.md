@@ -146,7 +146,7 @@ hook/DotAbyssHook-frida/更新流程.md
 | 官方版號 | 做法 | 耗時 |
 |---|---|---|
 | 沒變 | `python build.py --reinject` | 約 1 分鐘 |
-| 變了 | `python build.py`（**不給 `--input` 就會自動向 DMM API 查最新版並下載**）| 約 20 分鐘 |
+| 變了 | `python build.py`（**不給 `--input` 就會自動向 DMM API 查最新版並下載**）| 約 3～4 分鐘（多半在下載）|
 
 版號查詢就是第 0 步那支 `check_update.py` 印的 `APK: x.y.z code=N`。
 

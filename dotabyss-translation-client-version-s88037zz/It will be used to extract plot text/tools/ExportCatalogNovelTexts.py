@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+import os
 import re
 from collections import OrderedDict, defaultdict
 from pathlib import Path
@@ -106,10 +107,33 @@ def safe_stem(name: str) -> str:
     return re.sub(r"[^0-9A-Za-z_.-]+", "_", Path(name).stem)[:180]
 
 
+def long_path(path: Path) -> str:
+    """回傳能突破 Windows 260 字元上限的路徑字串。
+
+    劇情 bundle 的 primary_key 本身就有 150 字元, 輸出根再深一點就會超過:
+    2026-09-10 men_10010100001 的 raw TXT 是 263 字元, 寫入直接得到
+    FileNotFoundError —— Windows 對過長路徑就是回這個錯, 不是「檔案不存在」,
+    所以看起來完全不像長度問題。LongPathsEnabled=0 的機器一定會踩到。
+    """
+    text = os.path.abspath(str(path))
+    if os.name == "nt" and not text.startswith("\\\\?\\"):
+        text = "\\\\?\\" + text
+    return text
+
+
+def write_text_long(path: Path, text: str) -> None:
+    os.makedirs(long_path(path.parent), exist_ok=True)
+    with open(long_path(path), "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+
+
 def write_json(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="\n") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.makedirs(long_path(path.parent), exist_ok=True)
+    with open(long_path(path), "w", encoding="utf-8", newline="\n") as f:
+        # default=str: 報告裡難免混進 Path 這種不是 JSON 原生型別的東西。
+        # 原本會直接 TypeError, 而且偏偏是在寫「哪些 bundle 不見了」這份診斷時炸,
+        # 於是本該告訴你「N 顆 bundle 不見了」的訊息, 變成看不懂的崩潰。
+        json.dump(data, f, ensure_ascii=False, indent=2, default=str)
         f.write("\n")
 
 
@@ -159,8 +183,7 @@ def main() -> None:
             for index, text in enumerate(texts, 1):
                 if args.write_raw:
                     raw_path = script_raw_dir / f"{safe_stem(row['primary_key'])}_{index:02d}.txt"
-                    raw_path.parent.mkdir(parents=True, exist_ok=True)
-                    raw_path.write_text(text, encoding="utf-8", newline="\n")
+                    write_text_long(raw_path, text)
                 bundle_entries.update(extract_entries(text))
 
             before = len(entries)
