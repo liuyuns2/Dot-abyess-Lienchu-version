@@ -346,10 +346,13 @@ git show :path/to/file.json | md5
 **repo 全綠 ≠ 玩家拿到。** 中間還有一層 CDN：
 
 ```
-AbyssMod.cfg 的 CDN 設 raw.githubusercontent.com
-  → AbyssCdnRouter.dll 把網址改寫成 cdn.jsdelivr.net/gh/...
-    → jsDelivr 對「分支 ref」有快取（s-maxage=43200，最長 12 小時）
+AbyssMod.cfg 的 CDN 直接填 cdn.jsdelivr.net/gh/...
+  （raw.githubusercontent.com 那行是被註解掉的預設值，AbyssCdnRouter.dll 沒有參與）
+  → jsDelivr 對「分支 ref」有快取（s-maxage=43200，最長 12 小時）
 ```
+
+> 這點曾經寫錯成「填 raw、由 router 改寫」。實機 log 證實是直接打 jsDelivr：
+> `AbyssStaticFix ... Fetching static bundle once: https://cdn.jsdelivr.net/...`。
 
 所以 `git push` 完、`update_manifest.py` 全對，玩家還是可能拿到**幾個 commit 前**的檔案。
 兩種後果嚴重度差很多：

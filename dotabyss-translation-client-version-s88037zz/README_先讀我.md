@@ -141,20 +141,10 @@ git -C "<Masterdata>" pull --ff-only
 hook/DotAbyssHook-frida/更新流程.md
 ```
 
-那份分「情境 A：只改了翻譯」與「情境 B：官方改版了」。判斷依據是**官方 APK 版號有沒有變**：
-
-| 官方版號 | 做法 | 耗時 |
-|---|---|---|
-| 沒變 | `python build.py --reinject` | 約 1 分鐘 |
-| 變了 | `python build.py`（**不給 `--input` 就會自動向 DMM API 查最新版並下載**）| 約 3～4 分鐘（多半在下載）|
-
-版號查詢就是第 0 步那支 `check_update.py` 印的 `APK: x.y.z code=N`。
-
-打包完 `adb install -r` 升級（同一把 keystore，`firstInstallTime` 不變，存檔保留），
-實機驗過再發 Release，把 `dist/DotAbyssX-R18-zh-Hant.apk` 傳上去。
-
-> 驗 Release 傳對了沒，不必整包下載——比對頭尾各 64 KB 就夠：
-> `curl -sL -r 0-65535 <asset_url>` 與本機檔案的前 64 KB 對 md5，尾端同理。
+那份分「情境 A：只改了翻譯」（`build.py --reinject`，約 1 分鐘）與「情境 B：官方改版了」
+（`build.py`，約 3～4 分鐘），判斷依據是官方 APK 版號有沒有變——就是第 0 步那支
+`check_update.py` 印的 `APK: x.y.z code=N`。**指令、驗證清單與發 Release 的細節都在那份，
+這裡不重複。**
 
 ---
 
@@ -189,18 +179,9 @@ python tools/update_manifest.py                                                 
 
 ### 收尾（兩條線共用，別跳過）
 
-```
-□ python tools/build_combo_keys.py --master "<Masterdata>" --check   通過
-□ 禁翻的三個欄位仍為空（見 AGENTS.md）
-□ python tools/check_names.py --min 5   —— 譯名一致性複查（人工判讀，不是硬性關卡）
-□ git add 之後，用 git show :<路徑> 取暫存區 blob 算 md5，比對 manifest
-   —— 不能驗工作區檔案，Windows 的 CRLF 會讓 md5 對不上（HANDOVER 陷阱一）
-□ commit + push（逐檔 git add，本 repo 禁用 git add -A）
-□ python tools/verify_cdn.py --purge   通過   ← push 之後
-□ 實機進遊戲確認
-```
+**完整的驗證清單在 `HANDOVER.md` 第 4 節**，每次照那份跑。只記住最會出事的三件，
+因為它們都**沒有錯誤訊息**：
 
-> **最後兩件事最不能漏，而且都沒有錯誤訊息**：
-> `update_manifest.py` 漏了 → hash 對不上 → mod 不重抓 → 玩家永遠拿到舊翻譯；
-> `verify_cdn.py` 漏了 → CDN 還在餵舊檔 → 你以為推上去了，玩家還是日文
-> （`HANDOVER.md` 陷阱一、陷阱七）。
+- `git add -A` 禁用——上層有未追蹤的 `.zip` 和 TEST 資料夾，逐檔加
+- 漏 `update_manifest.py` → hash 對不上 → 玩家永遠拿到舊翻譯（陷阱一）
+- 漏 `verify_cdn.py --purge` → CDN 還在餵舊檔 → 你以為推上去了，玩家還是日文（陷阱七）

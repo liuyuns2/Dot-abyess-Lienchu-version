@@ -1,36 +1,20 @@
 # DotAbyss Localization Workflow Memory
 
-Before committing or pushing translation changes, always refresh the manifest hashes.
+This file holds the **hard rules**: what must never be translated, the emblem color tags, and
+how to treat dump files. The release flow itself (build bundles → update manifest → stage → push
+→ `verify_cdn.py --purge`) lives in `README_先讀我.md`; the failure modes behind each step are in
+`HANDOVER.md`. Do not restate either here.
 
-Required flow:
-
-1. Edit translation files.
-2. Rebuild novel bundles and update novel bundle hashes:
-   `python tools\build_novels_all.py`
-3. Recalculate non-novel hashes and the manifest hash:
-   `python tools\update_manifest.py`
-4. Validate JSON.
-5. Review `git status` and stage only intended files.
-6. Commit and push.
-7. **After pushing**, verify what players actually download:
-   `python tools\verify_cdn.py --purge`
-
-Hash ownership:
+Hash ownership (the one mapping that is only written down here):
 
 - `novels/<id>/zh_Hant.json` changes require rebuilding `novels_*_all/zh_Hant.json` and updating `manifest/zh_Hant.json` fields `novels_evs_all`, `novels_hmn_all`, `novels_hmr_all`, `novels_mas_all`, and `novels_men_all`.
 - `names/zh_Hant.json`, `ui_texts/zh_Hant.json`, `static/zh_Hant.json`, `add-on/**/zh_Hant.json`, and `other/**/zh_Hant.json` changes require updating their corresponding manifest MD5 fields.
 - After any manifest content changes, update `manifest/zh_Hant.json` field `hash`.
 
-Never assume CDN or local game cache will refresh correctly unless manifest hashes match the current file contents.
-
-Correct manifest hashes are necessary but **not sufficient**. Requests are rerouted from
-`raw.githubusercontent.com` to `cdn.jsdelivr.net` by `AbyssCdnRouter.dll`, and jsDelivr caches
-branch refs for up to 12 hours, so a pushed change can still reach players as a several-commit-old
-file. `names`/`ui_texts`/`add-on`/`other` at least fail loudly (runtime md5 check → stale-cache
-fallback logged as `Remote fetch failed`); `static` has **no** runtime integrity check, so a stale
-static bundle is injected silently and the screen is Japanese with no error anywhere. Always run
-`python tools\verify_cdn.py --purge` after pushing, and see HANDOVER.md trap 7 for the
-commit-SHA pin when a purge cannot clear it.
+Correct manifest hashes are necessary but **not sufficient** — jsDelivr can still serve a
+several-commit-old file, and a stale `static` bundle fails completely silently. Run
+`python tools\verify_cdn.py --purge` after every push; the full mechanism and the commit-SHA
+escape hatch are in `HANDOVER.md` trap 7.
 
 ## Permanent translation exclusions and emblem colors
 
