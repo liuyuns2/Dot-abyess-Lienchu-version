@@ -21,6 +21,8 @@ from rich.progress import (
     MofNCompleteColumn,
     TimeRemainingColumn,
 )
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 from AbyssSchema import DATABASE_SCHEMA
 from UnityCatalogReader import UnityCatalogReader
 
@@ -33,6 +35,29 @@ MASTER_BASE_URL = (
 )
 MAX_THREADS = 16
 RETRY_COUNT = 5
+
+# 2026-09-21: 官方在 CloudFront 前面加了 WAF, 會認 TLS 指紋擋掉腳本。
+# requests 用 OpenSSL 的出廠 cipher 順序, 那個指紋被列進黑名單 -> 整站 403
+# "Request blocked."(全路徑, 換 IP 換日本 VPN 都一樣, 但 curl.exe 走 Schannel 就 200)。
+# 只要換掉 cipher 清單指紋就不同, 對方是列黑名單不是白名單, 這樣就過。
+# 真的被擋時症狀是 403 而不是連不上, 別再往網路/地區方向查。
+CIPHERS = (
+    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:"
+    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:"
+    "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305"
+)
+
+
+class TlsAdapter(HTTPAdapter):
+    """指定 cipher 清單, 避開 WAF 對 Python 預設 TLS 指紋的封鎖。"""
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["ssl_context"] = create_urllib3_context(ciphers=CIPHERS)
+        return super().init_poolmanager(*args, **kwargs)
+
+    def proxy_manager_for(self, *args, **kwargs):
+        kwargs["ssl_context"] = create_urllib3_context(ciphers=CIPHERS)
+        return super().proxy_manager_for(*args, **kwargs)
 
 console = Console()
 
@@ -112,6 +137,7 @@ def create_secure_url(
 class AbyssDownloader:
     def __init__(self, threads: int = MAX_THREADS):
         self.session = requests.Session()
+        self.session.mount("https://", TlsAdapter())
         self.session.headers.update(
             {
                 "User-Agent": "UnityPlayer/6000.0.43f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",

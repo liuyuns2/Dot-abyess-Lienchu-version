@@ -5,7 +5,11 @@ param(
     [string]$BaseDir = "",
     # 翻譯 repo 根（含 -X- 與 Dot-abyess-Lienchu-version 的那層）；預設自動推導
     [string]$RepoRoot = "",
-    [string]$PythonExe = ""
+    [string]$PythonExe = "",
+    # 續跑用：catalog 已經抓好時跳過 [1/9]。階段 1 會把 12 萬筆資源位置
+    # 展開成 ~390MB 的 assets.json 全留在記憶體，是整條產線最吃 RAM 的一步，
+    # 被 OOM 砍掉時不必為了後面 8 階段再抓一次（也少打官方一次）。
+    [switch]$SkipCatalog
 )
 
 Set-StrictMode -Version Latest
@@ -178,11 +182,22 @@ if ($LASTEXITCODE -ne 0) {
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 Set-Location $filesDir
 
-Write-Host "[1/9] 抓取最新官方 R18 MasterData 與 catalog..." -ForegroundColor Cyan
-Invoke-Python @(
-    (Join-Path $filesDir "FetchLatestCatalogOnly.py"),
-    "--output", $outputDir
-)
+if ($SkipCatalog) {
+    Write-Host "[1/9] 略過（-SkipCatalog），沿用既有 catalog" -ForegroundColor Yellow
+    foreach ($f in @("assets.json", "latest_catalog_info.json", "base_url.txt", "MasterData.json")) {
+        $p = Join-Path $outputDir $f
+        if (-not (Test-Path -LiteralPath $p -PathType Leaf)) {
+            throw "-SkipCatalog 需要 $f，但 $outputDir 底下找不到。拿掉這個開關重跑階段 1。"
+        }
+    }
+}
+else {
+    Write-Host "[1/9] 抓取最新官方 R18 MasterData 與 catalog..." -ForegroundColor Cyan
+    Invoke-Python @(
+        (Join-Path $filesDir "FetchLatestCatalogOnly.py"),
+        "--output", $outputDir
+    )
+}
 
 Write-Host "[2/9] 建立小說文本 bundle 清單..." -ForegroundColor Cyan
 Invoke-Python @(
