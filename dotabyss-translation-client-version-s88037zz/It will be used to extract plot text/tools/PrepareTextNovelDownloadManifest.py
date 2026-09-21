@@ -1,8 +1,9 @@
 import argparse
 import csv
-import json
 from pathlib import Path
 from typing import Any
+
+from json_stream import iter_json_array
 
 
 REMOTE_TOKEN = "{Absf.Asset.AddressableAssets.AddressablesProfileDefine.RemoteLoadPath}"
@@ -31,9 +32,11 @@ def main() -> None:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    data = json.loads(assets_path.read_text(encoding="utf-8"))
+    # assets.json 是 ~390MB／12 萬筆，這裡只挑得出幾百筆劇情 bundle。
+    # 原本 read_text() + json.loads() 會先有一份 390MB 字串再疊一份解析後的物件，
+    # 是整條產線最吃 RAM 的地方之一；改成逐筆串流。
     rows = []
-    for asset in data.get("assets") or []:
+    for asset in iter_json_array(assets_path, "assets"):
         if not isinstance(asset, dict):
             continue
         primary_key = as_text(asset.get("primary_key"))

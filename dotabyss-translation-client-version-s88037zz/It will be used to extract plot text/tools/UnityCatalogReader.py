@@ -2,7 +2,7 @@ import json
 import base64
 import struct
 import sys
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, Iterator, List, Any, Optional, Union
 from dataclasses import dataclass
 from enum import IntEnum
 
@@ -853,56 +853,62 @@ class UnityCatalogReader:
             all_locations.extend(locations)
         return all_locations
 
+    def _asset_to_dict(self, asset: AssetInfo) -> Dict[str, Any]:
+        """把一筆 AssetInfo 轉成可序列化的 dict。"""
+        data_dict = None
+        if asset.data and isinstance(asset.data, dict):
+            data_dict = asset.data.copy()
+            if "common_info" in data_dict and isinstance(
+                data_dict["common_info"], CommonInfo
+            ):
+                data_dict["common_info"] = data_dict["common_info"].to_dict()
+
+        asset_info = {
+            "internal_id": asset.internal_id,
+            "provider_id": asset.provider_id,
+            "primary_key": asset.primary_key,
+            "dependency_hash_code": asset.dependency_hash_code,
+            "dependency_key": (
+                str(asset.dependency_key) if asset.dependency_key is not None else None
+            ),
+            "bundle_name": asset.bundle_name,
+            "bundle_size": asset.bundle_size,
+            "crc": asset.crc,
+            "hash": asset.hash,
+            "hash_code": asset.hash_code,
+            "resource_type": (
+                asset.resource_type.to_dict() if asset.resource_type else None
+            ),
+            "common_info": (
+                asset.common_info.to_dict() if asset.common_info else None
+            ),
+            "data": data_dict,
+        }
+        if asset.dependencies:
+            asset_info["dependencies"] = [
+                {
+                    "internal_id": dep.internal_id,
+                    "provider_id": dep.provider_id,
+                    "primary_key": dep.primary_key,
+                }
+                for dep in asset.dependencies
+            ]
+
+        return asset_info
+
+    def iter_asset_list(self) -> Iterator[Dict[str, Any]]:
+        """逐筆吐出扁平化資產 dict，不在記憶體裡累積整份清單。
+
+        12 萬筆 location 全部展開成 dict 會多吃好幾百 MB（見 export_to_json
+        的註解）。要整份清單請用 get_asset_list()，只是要逐筆處理就用這個。
+        """
+        for locations in self.resources.values():
+            for asset in locations:
+                yield self._asset_to_dict(asset)
+
     def get_asset_list(self) -> List[Dict[str, Any]]:
         """获取详细的资产列表（扁平化）"""
-        asset_list = []
-        all_locations = self.get_all_locations()
-
-        for asset in all_locations:
-            data_dict = None
-            if asset.data and isinstance(asset.data, dict):
-                data_dict = asset.data.copy()
-                if "common_info" in data_dict and isinstance(
-                    data_dict["common_info"], CommonInfo
-                ):
-                    data_dict["common_info"] = data_dict["common_info"].to_dict()
-
-            asset_info = {
-                "internal_id": asset.internal_id,
-                "provider_id": asset.provider_id,
-                "primary_key": asset.primary_key,
-                "dependency_hash_code": asset.dependency_hash_code,
-                "dependency_key": (
-                    str(asset.dependency_key)
-                    if asset.dependency_key is not None
-                    else None
-                ),
-                "bundle_name": asset.bundle_name,
-                "bundle_size": asset.bundle_size,
-                "crc": asset.crc,
-                "hash": asset.hash,
-                "hash_code": asset.hash_code,
-                "resource_type": (
-                    asset.resource_type.to_dict() if asset.resource_type else None
-                ),
-                "common_info": (
-                    asset.common_info.to_dict() if asset.common_info else None
-                ),
-                "data": data_dict,
-            }
-            if asset.dependencies:
-                asset_info["dependencies"] = [
-                    {
-                        "internal_id": dep.internal_id,
-                        "provider_id": dep.provider_id,
-                        "primary_key": dep.primary_key,
-                    }
-                    for dep in asset.dependencies
-                ]
-
-            asset_list.append(asset_info)
-
-        return asset_list
+        return list(self.iter_asset_list())
 
     def get_resources_dict(self) -> Dict[str, List[Dict[str, Any]]]:
         """获取资源字典（保持key->locations结构）"""
@@ -967,29 +973,25 @@ class UnityCatalogReader:
             output_path: 输出文件路径
             flat_structure: True=扁平化资产列表, False=保持key->locations结构
         """
-        if flat_structure:
-            all_assets = self.get_asset_list()
-            assets_data = all_assets
-        else:
-            assets_data = self.get_resources_dict()
-            all_assets = self.get_asset_list()
+        # 統計只需要 AssetInfo 物件本身, 不必先把 12 萬筆展開成 dict。
+        total_locations = 0
+        provider_stats: Dict[str, int] = {}
+        for locations in self.resources.values():
+            for asset in locations:
+                total_locations += 1
+                provider_id = asset.provider_id or ""
+                provider_type = (
+                    provider_id.split(".")[-1] if "." in provider_id else provider_id
+                )
+                provider_stats[provider_type] = provider_stats.get(provider_type, 0) + 1
 
-        provider_stats = {}
-        for asset in all_assets:
-            provider_type = (
-                asset["provider_id"].split(".")[-1]
-                if "." in asset["provider_id"]
-                else asset["provider_id"]
-            )
-            provider_stats[provider_type] = provider_stats.get(provider_type, 0) + 1
-
-        export_data = {
+        header = {
             "catalog_info": {
                 "version": self.version,
                 "locator_id": self.locator_id,
                 "build_result_hash": self.build_result_hash,
                 "total_resource_keys": len(self.resources),
-                "total_locations": len(all_assets),
+                "total_locations": total_locations,
                 "export_timestamp": __import__("datetime").datetime.now().isoformat(),
                 "structure_type": "flat" if flat_structure else "grouped",
             },
@@ -1011,10 +1013,35 @@ class UnityCatalogReader:
                 ),
             },
             "statistics": {"provider_types": provider_stats},
-            "assets" if flat_structure else "resources": assets_data,
         }
+
+        if not flat_structure:
+            # grouped 版沒人在產線上用, 維持原本一次寫完的作法。
+            header["resources"] = self.get_resources_dict()
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(header, f, ensure_ascii=False, indent=2)
+            print(f"已保存到{output_path}")
+            return output_path
+
+        # flat 版是產線用的: assets 陣列逐筆序列化後直接寫檔, 全程只有一筆 dict
+        # 活著。舊版先 get_asset_list() 把 12 萬筆全展開成 dict 再 json.dump,
+        # 那份清單本身就要好幾百 MB, 2026-09-21 就是卡在這裡被系統砍掉,
+        # 只留下半截 assets.json。輸出格式與舊版逐位元組相同。
+        indent = "  "
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(export_data, f, ensure_ascii=False, indent=2)
+            f.write("{\n")
+            for name, value in header.items():
+                blob = json.dumps(value, ensure_ascii=False, indent=2)
+                f.write(f"{indent}{json.dumps(name)}: ")
+                f.write(blob.replace("\n", "\n" + indent))
+                f.write(",\n")
+            f.write(f'{indent}"assets": [\n')
+            for index, asset_info in enumerate(self.iter_asset_list()):
+                if index:
+                    f.write(",\n")
+                blob = json.dumps(asset_info, ensure_ascii=False, indent=2)
+                f.write(indent * 2 + blob.replace("\n", "\n" + indent * 2))
+            f.write(f"\n{indent}]\n}}")
 
         print(f"已保存到{output_path}")
         return output_path

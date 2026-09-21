@@ -5,9 +5,11 @@ import re
 import shutil
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 import UnityPy
+
+from json_stream import iter_json_array
 
 
 NOVEL_TABLES = [
@@ -54,10 +56,13 @@ def collect_script_ids(masterdata_path: Path) -> list[str]:
     return script_ids
 
 
-def load_assets(assets_path: Path) -> list[dict[str, Any]]:
-    with assets_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data.get("assets") or []
+def load_assets(assets_path: Path) -> Iterator[dict[str, Any]]:
+    """逐筆吐出 assets.json 裡的 location。
+
+    這份檔案是 ~390MB／12 萬筆，`json.load()` 實測峰值 1.1GB、解析完還常駐 545MB，
+    而下游 index_text_bundles() 只挑得出幾百筆劇情 bundle。改成串流後峰值 7MB。
+    """
+    return iter_json_array(assets_path, "assets")
 
 
 def index_text_bundles(assets: Iterable[dict[str, Any]], downloads_dir: Path) -> dict[str, Path]:

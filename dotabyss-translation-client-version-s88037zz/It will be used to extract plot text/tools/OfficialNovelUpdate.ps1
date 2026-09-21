@@ -6,9 +6,9 @@ param(
     # 翻譯 repo 根（含 -X- 與 Dot-abyess-Lienchu-version 的那層）；預設自動推導
     [string]$RepoRoot = "",
     [string]$PythonExe = "",
-    # 續跑用：catalog 已經抓好時跳過 [1/9]。階段 1 會把 12 萬筆資源位置
-    # 展開成 ~390MB 的 assets.json 全留在記憶體，是整條產線最吃 RAM 的一步，
-    # 被 OOM 砍掉時不必為了後面 8 階段再抓一次（也少打官方一次）。
+    # 續跑用：catalog 已經抓好時跳過 [1/9]，不必為了後面 8 階段再抓一次
+    # （也少打官方一次）。2026-09-21 階段 1、2、4 都改成串流處理 assets.json 後
+    # 已經不會再因為記憶體被砍，但中途出錯時這個開關照樣省時間。
     [switch]$SkipCatalog
 )
 

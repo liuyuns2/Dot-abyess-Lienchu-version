@@ -5,9 +5,11 @@ import os
 import re
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 import UnityPy
+
+from json_stream import iter_json_array
 
 
 SCRIPT_ID_RE = re.compile(r"(?:mas|hmn|hmr|men|evs)_\d+", re.IGNORECASE)
@@ -27,8 +29,12 @@ def is_text_novel_bundle(primary_key: str) -> bool:
     )
 
 
-def load_assets(path: Path) -> list[dict[str, Any]]:
-    return (json.loads(path.read_text(encoding="utf-8")).get("assets") or [])
+def load_assets(path: Path) -> Iterator[dict[str, Any]]:
+    """逐筆吐出 assets.json 裡的 location（~390MB／12 萬筆，不整份載入）。
+
+    下游 build_bundle_rows() 只留得下幾百筆劇情 bundle，沒必要把整份留在記憶體。
+    """
+    return iter_json_array(path, "assets")
 
 
 def normalize_filename(primary_key: str) -> str:
