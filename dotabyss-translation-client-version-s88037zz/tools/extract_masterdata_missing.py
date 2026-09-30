@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -167,6 +168,11 @@ def main() -> None:
         table = path.stem
         if table in excluded_tables:
             continue
+        if rows and not isinstance(rows[0], dict):
+            # 官方 MasterData.json 有些表只存值沒欄位名；直接略過會整張表漏翻（2026-10 踩到）。
+            # 先用 watch/split_masterdata.py 拆表，它會套鏡像的欄位名。
+            invalid.append(f"{path.name}: 列沒有欄位名稱，整張表無法比對")
+            continue
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
                 continue
@@ -298,6 +304,8 @@ def main() -> None:
         "unknown_field_strings": unknown_total,
         "invalid_files": len(invalid),
     }, ensure_ascii=False))
+    if invalid:
+        print(f"警告：{len(invalid)} 個檔案沒比對到（見 比對報告.md「無法解析的檔案」）", file=sys.stderr)
 
 
 if __name__ == "__main__":
