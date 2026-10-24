@@ -35,9 +35,22 @@
 | **本檔** | 環境安裝、一鍵指令、參數覆寫、產出導覽 —— **先讀這份** |
 | `官方更新交接手冊.md` | 接在本檔後面：每一步在做什麼、產出結構、驗證指令、常見錯誤、交付檢查表 |
 | `tools/OfficialNovelUpdate.ps1` | 一鍵入口，依序跑完所有階段 |
-| `tools/check_update.py` | **跑之前先問這個**：官方更新上線了沒。解官方 `/version` 端點，比對資產版本／masterdata 版本／APK 版本與上次探測的差異 |
-| `tools/wait_for_update.sh` | 同上，但輪詢到變動為止（等改版當天用）|
+| 工作區 `watch/check_update.py` | **跑之前先問這個**：官方更新上線了沒（不在本 repo；`watch/wait_for_update.sh` 輪詢到變動為止） |
 | `tools/*.py` | 各階段工具（抓 catalog、下載、解包、套翻譯記憶、驗證…） |
+| `tools/manual/` | 素材抽取，不在更新流程裡，要用時手動跑（見下表） |
+
+### `tools/manual/` 素材抽取
+
+| 工具 | 用途 |
+|---|---|
+| `ExtractStand.py <bundle 資料夾>` | 從 bundle 抽立繪；讀同層 `assets.json`，輸出到同層 `Stand/`。Windows 要先設 `PYTHONUTF8=1` |
+| `ExtractSpine.py <bundle 資料夾>` | 從 bundle 抽 Spine 動畫；同上，輸出到同層 `Spine/` |
+| `OrganizeStandImages.py` | 依圖片清單 CSV 整理抽出來的立繪 PNG |
+| `CollectStandPngsByName.py` | 依檔名把立繪類 PNG 收到同一個資料夾 |
+| `ComposeNovelCharaStands.py` | 把劇情立繪圖集（身體＋表情）拼成可看的 PNG |
+| `PrepareR18NovelVoiceManifest.py` | 從 `assets.json` 列出 R18 劇情語音 bundle 清單 |
+| `PrepareR18NovelBgvManifest.py` | 同上，列 R18 劇情 BGV bundle |
+| `ExtractR18NovelVoiceAcb.py` | 依上面的清單從已下載的 bundle 抽出 ACB 音檔 |
 
 ## 快速開始
 

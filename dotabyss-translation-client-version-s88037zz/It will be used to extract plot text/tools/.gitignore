@@ -1,10 +1,3 @@
-# check_update.py 的本機探測基準，每台機器不同，不進版控
-update_baseline.json
-
 # venv / 快取
 .venv/
 __pycache__/
-
-# watch_update.py 的本機狀態，不進版控
-update_detected.json
-update_etag.txt
