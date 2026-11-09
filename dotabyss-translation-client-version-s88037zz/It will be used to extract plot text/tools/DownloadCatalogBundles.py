@@ -2,6 +2,7 @@ import argparse
 import csv
 import json
 import os
+import ssl
 import threading
 import time
 import urllib.error
@@ -15,6 +16,11 @@ HEADERS = {
     "User-Agent": "UnityPlayer/6000.0.43f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
     "X-Unity-Version": "6000.0.43f1",
 }
+
+
+# 官方 CDN 對 TLS 1.3 一律回 403（2026-11-09 起），1.2 正常
+TLS = ssl.create_default_context()
+TLS.maximum_version = ssl.TLSVersion.TLSv1_2
 
 
 class DownloadState:
@@ -112,7 +118,7 @@ def download_one(item: dict[str, object], output_dir: Path, retries: int) -> tup
                 return ("done", file_name, expected_size)
 
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=45) as response:
+            with urllib.request.urlopen(req, timeout=45, context=TLS) as response:
                 if response.status == 200 and mode == "ab":
                     mode = "wb"
                 with part.open(mode + "") as f:
