@@ -35,7 +35,7 @@
 | **本檔** | 環境安裝、一鍵指令、參數覆寫、產出導覽 —— **先讀這份** |
 | `官方更新交接手冊.md` | 接在本檔後面：每一步在做什麼、產出結構、驗證指令、常見錯誤、交付檢查表 |
 | `tools/OfficialNovelUpdate.ps1` | 一鍵入口，依序跑完所有階段 |
-| 工作區 `watch/check_update.py` | **跑之前先問這個**：官方更新上線了沒（不在本 repo；`watch/wait_for_update.sh` 輪詢到變動為止） |
+| 工作區 `watch/check_update.py` | **跑之前先問這個**：官方更新上線了沒（不在本 repo；`watch/watch_update.py` 輪詢到更新到齊為止） |
 | `tools/*.py` | 各階段工具（抓 catalog、下載、解包、套翻譯記憶、驗證…） |
 | `tools/manual/` | 素材抽取，不在更新流程裡，要用時手動跑（見下表） |
 

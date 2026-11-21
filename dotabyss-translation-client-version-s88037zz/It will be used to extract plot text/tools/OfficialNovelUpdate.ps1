@@ -121,12 +121,25 @@ function Get-L2DIds {
     return $set
 }
 
+function Get-PreviousL2DIds {
+    # 上一版只留 l2d_ids.txt（assets.json 跑完就刪，一份 400 MB 以上）；更舊的資料夾才可能還有 assets.json
+    param([string]$Dir)
+    $ids = Join-Path $Dir "l2d_ids.txt"
+    if (Test-Path -LiteralPath $ids) {
+        $set = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($l in (Get-Content -LiteralPath $ids -Encoding UTF8)) { if ($l) { [void]$set.Add($l.Trim()) } }
+        return , $set
+    }
+    return , (Get-L2DIds (Join-Path $Dir "assets.json"))
+}
+
 function Write-L2DChanges {
     $previous = Get-ChildItem -LiteralPath $outputRoot -Directory -ErrorAction SilentlyContinue |
         Where-Object {
             $_.FullName -ne $outputDir -and
             $_.Name -like "official_update_*" -and
-            (Test-Path -LiteralPath (Join-Path $_.FullName "assets.json"))
+            ((Test-Path -LiteralPath (Join-Path $_.FullName "l2d_ids.txt")) -or
+             (Test-Path -LiteralPath (Join-Path $_.FullName "assets.json")))
         } |
         Sort-Object Name -Descending |
         Select-Object -First 1
@@ -137,9 +150,9 @@ function Write-L2DChanges {
         return
     }
 
-    $previousAssets = Join-Path $previous.FullName "assets.json"
-    $oldIds = Get-L2DIds $previousAssets
+    $oldIds = Get-PreviousL2DIds $previous.FullName
     $newIds = Get-L2DIds $assetsJson
+    ($newIds | Sort-Object) | Set-Content -LiteralPath (Join-Path $outputDir "l2d_ids.txt") -Encoding UTF8
     $added = @($newIds | Where-Object { -not $oldIds.Contains($_) } | Sort-Object)
     $removed = @($oldIds | Where-Object { -not $newIds.Contains($_) } | Sort-Object)
 
@@ -287,6 +300,13 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "[9/9] 比對上一版 L2D ID..." -ForegroundColor Cyan
 Write-L2DChanges
+
+# 收尾省空間：assets.json（400 MB 以上）與 catalog bin 只在本次流程內用到，L2D 編號已另存 l2d_ids.txt。
+# 只保留最近三次 official_update_*（更新流程.md 的規定，以前靠人記）。
+Remove-Item -LiteralPath $assetsJson, (Join-Path $outputDir "catalog_1.bin") -Force -ErrorAction SilentlyContinue
+Get-ChildItem -LiteralPath $outputRoot -Directory -Filter "official_update_*" |
+    Sort-Object Name -Descending | Select-Object -Skip 3 |
+    ForEach-Object { Write-Host "刪除舊輸出：$($_.Name)"; Remove-Item -LiteralPath $_.FullName -Recurse -Force }
 
 $catalogInfo = Get-Content -LiteralPath (Join-Path $outputDir "latest_catalog_info.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $novelSummary = Get-Content -LiteralPath (Join-Path $outputDir "novel_export_summary.json") -Raw -Encoding UTF8 | ConvertFrom-Json

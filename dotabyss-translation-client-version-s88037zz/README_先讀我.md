@@ -112,7 +112,7 @@ python ../../watch/check_update.py      # 工作區的 watch/，不在本 repo
 ```
 
 看 `AssetVersionAndroidDmmR18` 與 `resource` 有沒有跳號。改版當天可以掛
-`watch/wait_for_update.sh` 輪詢到變動為止。
+`watch/watch_update.py` 輪詢到更新到齊為止（用法見工作區 `更新流程.md`）。
 
 > 🩸 **2026-08-20**：公告寫下午三點，實際上 `resource` 中午 12:03 就從 53 跳到 54。
 > 只往前輪詢而不查歷史，會永遠看到「無變化」。

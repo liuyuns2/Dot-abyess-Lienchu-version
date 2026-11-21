@@ -26,7 +26,9 @@ def main() -> None:
 
     versions = info.get("versions", {})
     asset_ver = downloader._pick_version(versions, "AssetVersionWebDmmR18", default=None)
-    master_ver = downloader._pick_version(versions, "resource", default="4")
+    master_ver = downloader._pick_version(versions, "resource", default=None)
+    if not master_ver:
+        raise SystemExit("版本回應裡沒有 resource，中止（以前會預設成 4，抓到極舊的主資料）。")
     client_ver = downloader._pick_version(versions, "ClientVersionWebDmmR18", default="1.0.0") or "1.0.0"
     client_prefix = str(client_ver).split(".")[0] if client_ver else "1"
 
@@ -42,8 +44,17 @@ def main() -> None:
         import os
 
         os.chdir(output)
-        if not downloader.handle_master_data():
-            print("Warning: MasterData download failed; continuing catalog fetch.")
+        # 舊的 MasterData.json 先刪掉：下載失敗時不能留著上一版讓後面的步驟默默拿去用
+        # （2026-11-20 就是這樣拿到 91，版本 API 已經是 92）
+        stale = output / "MasterData.json"
+        if stale.exists():
+            stale.unlink()
+        if not downloader.handle_master_data() or not stale.exists():
+            raise SystemExit(f"MasterData {master_ver} 下載失敗，中止（不沿用舊檔）。")
+        recheck = downloader.get_version_info() or {}
+        now_ver = downloader._pick_version(recheck.get("versions", {}), "resource", default=None)
+        if now_ver and now_ver != master_ver:
+            raise SystemExit(f"下載途中 resource 從 {master_ver} 變成 {now_ver}，請重跑。")
 
         base_url = f"https://api.abyss-prod-r18.dotabyss.dmmgames.com/resources/webgl/r18/aas/{asset_ver}/aa"
         hash_url = f"{base_url}/catalog_{client_prefix}.hash"

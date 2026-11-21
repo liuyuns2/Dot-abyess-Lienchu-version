@@ -30,6 +30,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TARGET = ROOT / "static" / "zh_Hant.json"
+UI_TARGET = ROOT / "ui_texts" / "zh_Hant.json"
+UI_INDENT = 4   # ui_texts 是 4 格縮排；用 2 格重寫會變成上萬行 diff
 
 FORBIDDEN_TABLES: set[str] = set()
 
@@ -50,10 +52,10 @@ def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8-sig"), object_pairs_hook=OrderedDict)
 
 
-def write_json(path: Path, data: Any) -> None:
+def write_json(path: Path, data: Any, indent: int = 2) -> None:
     # 與 update_manifest.py 的 hash 計算前提一致：一律 LF，結尾補換行
     with path.open("w", encoding="utf-8", newline="\n") as handle:
-        json.dump(data, handle, ensure_ascii=False, indent=2)
+        json.dump(data, handle, ensure_ascii=False, indent=indent)
         handle.write("\n")
 
 
@@ -96,6 +98,14 @@ def main() -> int:
         metavar="表/欄位",
         help="額外禁翻欄位，可重複",
     )
+    parser.add_argument(
+        "--also-ui",
+        action="append",
+        default=[],
+        metavar="表/欄位",
+        help="這個欄位的條目同時寫進 ui_texts（名字出現在清單、對話框、選單時要兩邊都有；"
+             "未知欄位也是）。寫 ALL 代表全部欄位",
+    )
     args = parser.parse_args()
 
     for item in args.exclude_field:
@@ -115,6 +125,12 @@ def main() -> int:
     identical: list[tuple[str, str, str]] = []
     warnings: list[tuple[str, str, str, str]] = []
 
+    ui_fields = {tuple(x.split("/", 1)) for x in args.also_ui if x != "ALL"}
+    ui_all = "ALL" in args.also_ui
+    ui = load_json(UI_TARGET) if args.also_ui else None
+    ui_added: list[str] = []
+    ui_conflicts: list[tuple[str, str, str]] = []
+
     for table, fields in incoming.items():
         if not isinstance(fields, dict):
             continue
@@ -131,6 +147,14 @@ def main() -> int:
                 if not translated.strip():
                     skipped_empty.append((table, field, source))
                     continue
+
+                if ui is not None and (ui_all or (table, field) in ui_fields):
+                    old = ui.get(source)
+                    if old is None:
+                        ui[source] = translated
+                        ui_added.append(source)
+                    elif old != translated:
+                        ui_conflicts.append((source, old, translated))
 
                 existing = target.get(table, {}).get(field, {}).get(source)
                 if existing is not None:
@@ -180,6 +204,11 @@ def main() -> int:
     dump("── 可疑，請人工確認", warnings,
          lambda r: f"  [{r[3]}] {r[0]}/{r[1]}  {r[2][:40]}")
 
+    if ui is not None:
+        print(f"ui_texts 新增    {len(ui_added)}")
+        dump("── ui_texts 已有不同譯文，未覆蓋", ui_conflicts,
+             lambda r: f"  {r[0][:40]}\n    既有 {r[1][:50]}\n    新的 {r[2][:50]}")
+
     if conflicts and not args.allow_overwrite:
         print("\n衝突條目未寫入。確認新譯文較佳後，用 --allow-overwrite 重跑。")
 
@@ -187,8 +216,12 @@ def main() -> int:
         print("\n--dry-run：未寫入任何檔案。")
         return 0
 
+    if ui_added:
+        write_json(UI_TARGET, ui, UI_INDENT)
+        print(f"\n已寫入 {UI_TARGET}")
+
     if not merged and not overwritten:
-        print("\n沒有任何條目需要寫入，目標檔未變動。")
+        print("\nstatic 沒有任何條目需要寫入，目標檔未變動。")
         return 0
 
     write_json(args.target, target)
